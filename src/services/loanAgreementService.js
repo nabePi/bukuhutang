@@ -210,6 +210,74 @@ class LoanAgreementService {
     `);
     stmt.run(id);
   }
+
+  // Record payment for installment
+  recordPayment(installmentId, amount) {
+    const installment = this.getInstallmentById(installmentId);
+    if (!installment) throw new Error('Installment not found');
+    
+    const newPaidAmount = (installment.paid_amount || 0) + amount;
+    const status = newPaidAmount >= installment.amount ? 'paid' : 'partial';
+    
+    const stmt = this.db.prepare(`
+      UPDATE installment_payments 
+      SET paid_amount = ?, status = ?, paid_at = datetime('now')
+      WHERE id = ?
+    `);
+    stmt.run(newPaidAmount, status, installmentId);
+    
+    // Check if all installments paid
+    this.checkAgreementCompletion(installment.agreement_id);
+    
+    return this.getInstallmentById(installmentId);
+  }
+
+  // Check if agreement is fully paid
+  checkAgreementCompletion(agreementId) {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as total,
+             SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid
+      FROM installment_payments 
+      WHERE agreement_id = ?
+    `);
+    const result = stmt.get(agreementId);
+    
+    if (result.total > 0 && result.total === result.paid) {
+      const updateStmt = this.db.prepare(`
+        UPDATE loan_agreements SET status = 'completed' WHERE id = ?
+      `);
+      updateStmt.run(agreementId);
+    }
+  }
+
+  // Get payment history for borrower
+  getPaymentHistory(agreementId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM installment_payments 
+      WHERE agreement_id = ?
+      ORDER BY installment_number ASC
+    `);
+    return stmt.all(agreementId);
+  }
+
+  // Get installment by agreement and number
+  getInstallmentByNumber(agreementId, installmentNumber) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM installment_payments 
+      WHERE agreement_id = ? AND installment_number = ?
+    `);
+    return stmt.get(agreementId, installmentNumber);
+  }
+
+  // Find agreement by borrower name and lender
+  findAgreementByBorrower(lenderId, borrowerName) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM loan_agreements 
+      WHERE lender_id = ? AND borrower_name = ? AND status IN ('active', 'draft')
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    return stmt.get(lenderId, borrowerName);
+  }
 }
 
 module.exports = new LoanAgreementService();

@@ -63,6 +63,15 @@ class MessageHandler {
         case 'BAYAR_CICILAN':
           await this.handleBayarCicilan(user, command, msg.key.remoteJid);
           break;
+        case 'BAYAR':
+          await this.handleBayar(user, command, msg.key.remoteJid);
+          break;
+        case 'STATUS_CICILAN':
+          await this.handleStatusCicilan(user, command, msg.key.remoteJid);
+          break;
+        case 'RIWAYAT':
+          await this.handleRiwayat(user, command, msg.key.remoteJid);
+          break;
         case 'PERJANJIAN':
           await this.handlePerjanjian(user, msg.key.remoteJid);
           break;
@@ -174,6 +183,114 @@ class MessageHandler {
     await this.client.sendMessage(jid, `✅ Memproses pembayaran cicilan #${command.installmentNumber}...`);
   }
 
+  async handleBayar(user, command, jid) {
+    // Find active agreement
+    const agreements = loanAgreementService.getUserAgreements(user.id);
+    const activeAgreement = agreements.find(a => a.status === 'active');
+    
+    if (!activeAgreement) {
+      await this.client.sendMessage(jid, 'Tidak ada cicilan aktif. Ketik CICILAN untuk melihat daftar.');
+      return;
+    }
+    
+    // Find installment by number
+    const installment = loanAgreementService.getInstallmentByNumber(
+      activeAgreement.id, 
+      command.installmentNumber
+    );
+    
+    if (!installment) {
+      await this.client.sendMessage(jid, `Cicilan #${command.installmentNumber} tidak ditemukan.`);
+      return;
+    }
+    
+    if (installment.status === 'paid') {
+      await this.client.sendMessage(jid, `Cicilan #${command.installmentNumber} sudah lunas.`);
+      return;
+    }
+    
+    // Record full payment
+    const remaining = installment.amount - (installment.paid_amount || 0);
+    const updated = loanAgreementService.recordPayment(installment.id, remaining);
+    
+    // Notify lender
+    const reply = `✅ PEMBAYARAN TERCATAT
+
+Cicilan #${command.installmentNumber}
+Jumlah: Rp ${remaining.toLocaleString('id-ID')}
+Status: ${updated.status === 'paid' ? 'LUNAS ✅' : 'SEBAGIAN'}
+Tanggal: ${new Date().toLocaleDateString('id-ID')}
+
+Sisa cicilan: ${updated.status === 'paid' ? '0' : 'Ada'}`;
+
+    await this.client.sendMessage(jid, reply);
+    
+    // Notify borrower
+    await this.client.sendMessage(activeAgreement.borrower_phone + '@s.whatsapp.net',
+      `Terima kasih! Pembayaran cicilan #${command.installmentNumber} sebesar Rp ${remaining.toLocaleString('id-ID')} telah diterima.`
+    );
+  }
+
+  async handleStatusCicilan(user, command, jid) {
+    const agreement = loanAgreementService.findAgreementByBorrower(user.id, command.borrowerName);
+    
+    if (!agreement) {
+      await this.client.sendMessage(jid, `Tidak menemukan perjanjian dengan ${command.borrowerName}`);
+      return;
+    }
+    
+    const installments = loanAgreementService.getPaymentHistory(agreement.id);
+    
+    let reply = `📊 STATUS CICILAN: ${agreement.borrower_name}\n\n`;
+    reply += `Total: Rp ${agreement.total_amount.toLocaleString('id-ID')}\n`;
+    reply += `Cicilan: Rp ${agreement.installment_amount.toLocaleString('id-ID')}/bulan\n\n`;
+    
+    let paidCount = 0;
+    installments.forEach(inst => {
+      const statusEmoji = inst.status === 'paid' ? '✅' : inst.status === 'partial' ? '⏳' : '⏸️';
+      reply += `${statusEmoji} #${inst.installment_number}: Rp ${inst.amount.toLocaleString('id-ID')}`;
+      if (inst.paid_amount > 0) {
+        reply += ` (terbayar: Rp ${inst.paid_amount.toLocaleString('id-ID')})`;
+      }
+      reply += '\n';
+      if (inst.status === 'paid') paidCount++;
+    });
+    
+    reply += `\nProgress: ${paidCount}/${installments.length} cicilan lunas`;
+    
+    await this.client.sendMessage(jid, reply);
+  }
+
+  async handleRiwayat(user, command, jid) {
+    const agreement = loanAgreementService.findAgreementByBorrower(user.id, command.borrowerName);
+    
+    if (!agreement) {
+      await this.client.sendMessage(jid, `Tidak menemukan perjanjian dengan ${command.borrowerName}`);
+      return;
+    }
+    
+    const history = loanAgreementService.getPaymentHistory(agreement.id);
+    const paidInstallments = history.filter(h => h.paid_amount > 0);
+    
+    if (paidInstallments.length === 0) {
+      await this.client.sendMessage(jid, `Belum ada pembayaran dari ${command.borrowerName}`);
+      return;
+    }
+    
+    let reply = `📜 RIWAYAT PEMBAYARAN: ${agreement.borrower_name}\n\n`;
+    
+    paidInstallments.forEach(p => {
+      reply += `✅ Cicilan #${p.installment_number}\n`;
+      reply += `   Jumlah: Rp ${p.paid_amount.toLocaleString('id-ID')}\n`;
+      reply += `   Tanggal: ${p.paid_at || '-'}\n\n`;
+    });
+    
+    const totalPaid = paidInstallments.reduce((sum, p) => sum + p.paid_amount, 0);
+    reply += `TOTAL TERBAYAR: Rp ${totalPaid.toLocaleString('id-ID')}`;
+    
+    await this.client.sendMessage(jid, reply);
+  }
+
   async handlePerjanjian(user, jid) {
     const agreements = loanAgreementService.getUserAgreements(user.id);
 
@@ -209,7 +326,12 @@ PERJANJIAN HUTANG (Dengan Cicilan):
 • BAYAR CICILAN [nomor] - Bayar cicilan
 
 LAINNYA:
-• INGATKAN [nama] - Kirim reminder manual`;
+• INGATKAN [nama] — Kirim reminder manual
+
+PEMBAYARAN:
+• BAYAR [nomor] — Catat pembayaran cicilan
+• STATUS CICILAN [nama] — Cek status pembayaran
+• RIWAYAT [nama] — Lihat history pembayaran`;
 
     await this.client.sendMessage(jid, help);
   }

@@ -93,6 +93,33 @@ function parseCommand(message) {
     return { type: 'PERJANJIAN' };
   }
 
+  // BAYAR command (for payment tracking)
+  const bayarCmdMatch = message.match(/^BAYAR\s+(\d+)/i);
+  if (bayarCmdMatch) {
+    return {
+      type: 'BAYAR',
+      installmentNumber: parseInt(bayarCmdMatch[1])
+    };
+  }
+
+  // STATUS CICILAN command
+  const statusCicilanMatch = message.match(/^STATUS\s+CICILAN\s+(\S+)/i);
+  if (statusCicilanMatch) {
+    return {
+      type: 'STATUS_CICILAN',
+      borrowerName: statusCicilanMatch[1]
+    };
+  }
+
+  // RIWAYAT command
+  const riwayatMatch = message.match(/^RIWAYAT\s+(\S+)/i);
+  if (riwayatMatch) {
+    return {
+      type: 'RIWAYAT',
+      borrowerName: riwayatMatch[1]
+    };
+  }
+
   return { type: 'UNKNOWN', raw: message };
 }
 
