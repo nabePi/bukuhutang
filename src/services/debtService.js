@@ -99,6 +99,55 @@ class DebtService {
     const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM debts WHERE status = 'pending' AND due_date < date('now')`);
     return stmt.get().count;
   }
+
+  // Dashboard methods
+  getTotalPending(userId) {
+    const stmt = this.db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM debts 
+      WHERE user_id = ? AND status = 'pending'
+    `);
+    return stmt.get(userId).total;
+  }
+
+  getTotalHutang(userId) {
+    // For user's own debts (if any) - placeholder implementation
+    const stmt = this.db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM debts 
+      WHERE user_id = ? AND status = 'pending'
+    `);
+    return stmt.get(userId).total;
+  }
+
+  getTopBorrowers(userId, limit = 5) {
+    const stmt = this.db.prepare(`
+      SELECT debtor_name as name, SUM(amount) as amount 
+      FROM debts 
+      WHERE user_id = ? AND status = 'pending'
+      GROUP BY debtor_name 
+      ORDER BY amount DESC 
+      LIMIT ?
+    `);
+    return stmt.all(userId, limit);
+  }
+
+  getRecentTransactions(userId, limit = 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        created_at as date,
+        debtor_name as name,
+        CASE 
+          WHEN status = 'paid' THEN 'Pembayaran'
+          ELSE 'Pinjaman'
+        END as type,
+        amount,
+        status
+      FROM debts 
+      WHERE user_id = ?
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `);
+    return stmt.all(userId, limit);
+  }
 }
 
 module.exports = new DebtService();

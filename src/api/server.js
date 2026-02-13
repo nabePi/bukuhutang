@@ -1,12 +1,74 @@
 const express = require('express');
+const path = require('path');
 const debtService = require('../services/debtService');
 const loanAgreementService = require('../services/loanAgreementService');
+const reportService = require('../services/reportService');
 const userService = require('../services/userService');
 const { parseCommand } = require('../parser/commandParser');
 const { authenticateApiKey, rateLimit, validateRequest, requestLogger } = require('../middleware/security');
 
 const app = express();
 app.use(express.json());
+
+// Serve static files
+app.use(express.static('public'));
+
+// Dashboard API
+app.get('/api/dashboard/stats', async (req, res) => {
+    try {
+        // This would need userId from auth in production
+        const userId = 1; // Default for now
+        
+        const stats = await getDashboardStats(userId);
+        res.json(stats);
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Dashboard HTML
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../public/dashboard.html'));
+});
+
+async function getDashboardStats(userId) {
+    // Get basic stats
+    const totalPiutang = await debtService.getTotalPending(userId);
+    const totalHutang = await debtService.getTotalHutang(userId);
+    const activeAgreements = await loanAgreementService.getActiveCount(userId);
+    const overdueCount = await debtService.getOverdueCount(userId);
+    
+    // Get monthly data
+    const monthlyData = reportService.getMonthlyStats(userId, 6);
+    
+    // Get installment status
+    const installmentStats = await loanAgreementService.getInstallmentStats(userId);
+    
+    // Get top borrowers
+    const topBorrowers = await debtService.getTopBorrowers(userId, 5);
+    
+    // Get recent transactions
+    const recentTransactions = await debtService.getRecentTransactions(userId, 10);
+    
+    return {
+        totalPiutang,
+        totalHutang,
+        activeAgreements,
+        overdueCount,
+        monthlyLabels: monthlyData.labels,
+        monthlyPiutang: monthlyData.piutang,
+        monthlyHutang: monthlyData.hutang,
+        paidInstallments: installmentStats.paid,
+        pendingInstallments: installmentStats.pending,
+        overdueInstallments: installmentStats.overdue,
+        topBorrowers,
+        recentTransactions,
+        cashflowLabels: monthlyData.labels,
+        cashflowIn: monthlyData.collected,
+        cashflowOut: monthlyData.lent
+    };
+}
 
 // Apply middleware
 app.use(requestLogger);

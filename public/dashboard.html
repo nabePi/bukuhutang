@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BukuHutang Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card .icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-card.positive .value {
+            color: #10b981;
+        }
+        
+        .stat-card.negative .value {
+            color: #ef4444;
+        }
+        
+        .stat-card.warning .value {
+            color: #f59e0b;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .chart-card h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .recent-transactions {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .recent-transactions h3 {
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .status.paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status.overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-bottom: 20px;
+            transition: opacity 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 BukuHutang Dashboard</h1>
+            <p>Monitor hutang, piutang, dan cicilan Anda dalam satu tempat</p>
+        </header>
+        
+        <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh Data</button>
+        
+        <div class="stats-grid">
+            <div class="stat-card positive">
+                <div class="icon">💰</div>
+                <h3>Total Piutang</h3>
+                <div class="value" id="totalPiutang">Rp 0</div>
+            </div>
+            
+            <div class="stat-card negative">
+                <div class="icon">💸</div>
+                <h3>Total Hutang</h3>
+                <div class="value" id="totalHutang">Rp 0</div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="icon">📋</div>
+                <h3>Perjanjian Aktif</h3>
+                <div class="value" id="activeAgreements">0</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="icon">⏰</div>
+                <h3>Jatuh Tempo</h3>
+                <div class="value" id="overdueCount">0</div>
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📈 Hutang vs Piutang (6 Bulan)</h3>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>🥧 Status Cicilan</h3>
+                <canvas id="installmentChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📊 Top Borrowers</h3>
+                <canvas id="borrowerChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>💹 Cash Flow</h3>
+                <canvas id="cashflowChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="recent-transactions">
+            <h3>📝 Transaksi Terbaru</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Nama</th>
+                        <th>Jenis</th>
+                        <th>Jumlah</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTable">
+                    <tr>
+                        <td colspan="5" class="loading">Memuat data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        let monthlyChart, installmentChart, borrowerChart, cashflowChart;
+        
+        // Format currency
+        function formatRupiah(angka) {
+            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/dashboard/stats');
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('totalPiutang').textContent = formatRupiah(data.totalPiutang);
+                document.getElementById('totalHutang').textContent = formatRupiah(data.totalHutang);
+                document.getElementById('activeAgreements').textContent = data.activeAgreements;
+                document.getElementById('overdueCount').textContent = data.overdueCount;
+                
+                // Update charts
+                updateCharts(data);
+                
+                // Update table
+                updateTransactionTable(data.recentTransactions);
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                alert('Gagal memuat data. Pastikan server berjalan.');
+            }
+        }
+        
+        // Update charts
+        function updateCharts(data) {
+            // Monthly chart
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChart) monthlyChart.destroy();
+            
+            monthlyChart = new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: data.monthlyLabels,
+                    datasets: [{
+                        label: 'Piutang',
+                        data: data.monthlyPiutang,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Hutang',
+                        data: data.monthlyHutang,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Installment chart
+            const installmentCtx = document.getElementById('installmentChart').getContext('2d');
+            if (installmentChart) installmentChart.destroy();
+            
+            installmentChart = new Chart(installmentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Lunas', 'Pending', 'Jatuh Tempo'],
+                    datasets: [{
+                        data: [data.paidInstallments, data.pendingInstallments, data.overdueInstallments],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+            
+            // Borrower chart
+            const borrowerCtx = document.getElementById('borrowerChart').getContext('2d');
+            if (borrowerChart) borrowerChart.destroy();
+            
+            borrowerChart = new Chart(borrowerCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.topBorrowers.map(b => b.name),
+                    datasets: [{
+                        label: 'Total Hutang',
+                        data: data.topBorrowers.map(b => b.amount),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+            
+            // Cashflow chart
+            const cashflowCtx = document.getElementById('cashflowChart').getContext('2d');
+            if (cashflowChart) cashflowChart.destroy();
+            
+            cashflowChart = new Chart(cashflowCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.cashflowLabels,
+                    datasets: [{
+                        label: 'Masuk',
+                        data: data.cashflowIn,
+                        backgroundColor: '#10b981'
+                    }, {
+                        label: 'Keluar',
+                        data: data.cashflowOut,
+                        backgroundColor: '#ef4444'
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+        
+        // Update transaction table
+        function updateTransactionTable(transactions) {
+            const tbody = document.getElementById('transactionTable');
+            tbody.innerHTML = '';
+            
+            transactions.forEach(t => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${t.date}</td>
+                    <td>${t.name}</td>
+                    <td>${t.type}</td>
+                    <td>${formatRupiah(t.amount)}</td>
+                    <td><span class="status ${t.status}">${t.status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Load on page load
+        window.onload = loadDashboard;
+    </script>
+</body>
+</html>

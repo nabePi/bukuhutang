@@ -155,9 +155,40 @@ class LoanAgreementService {
     return stmt.all(userId);
   }
 
-  getActiveCount() {
+  getActiveCount(userId = null) {
+    if (userId) {
+      const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE lender_id = ? AND status = 'active'`);
+      return stmt.get(userId).count;
+    }
     const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE status = 'active'`);
     return stmt.get().count;
+  }
+
+  getInstallmentStats(userId) {
+    const paidStmt = this.db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM installment_payments ip
+      JOIN loan_agreements la ON ip.agreement_id = la.id
+      WHERE la.lender_id = ? AND ip.status = 'paid'
+    `);
+    const pendingStmt = this.db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM installment_payments ip
+      JOIN loan_agreements la ON ip.agreement_id = la.id
+      WHERE la.lender_id = ? AND ip.status = 'pending' AND ip.due_date >= date('now')
+    `);
+    const overdueStmt = this.db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM installment_payments ip
+      JOIN loan_agreements la ON ip.agreement_id = la.id
+      WHERE la.lender_id = ? AND ip.status = 'pending' AND ip.due_date < date('now')
+    `);
+    
+    return {
+      paid: paidStmt.get(userId).count,
+      pending: pendingStmt.get(userId).count,
+      overdue: overdueStmt.get(userId).count
+    };
   }
 
   getPendingInstallmentCount() {

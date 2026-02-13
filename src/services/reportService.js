@@ -106,6 +106,50 @@ class ReportService {
       netPosition: totalCollected.total - totalLent.total
     };
   }
+
+  // Get monthly stats for dashboard
+  getMonthlyStats(userId, months = 6) {
+    const labels = [];
+    const piutang = [];
+    const hutang = [];
+    const collected = [];
+    const lent = [];
+    
+    for (let i = months - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthStr = date.toLocaleString('id-ID', { month: 'short' });
+        labels.push(monthStr);
+        
+        // Get data for each month (simplified)
+        const monthData = this.getMonthData(userId, date.getFullYear(), date.getMonth() + 1);
+        piutang.push(monthData.piutang);
+        hutang.push(monthData.hutang);
+        collected.push(monthData.collected);
+        lent.push(monthData.lent);
+    }
+    
+    return { labels, piutang, hutang, collected, lent };
+  }
+  
+  getMonthData(userId, year, month) {
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
+    
+    const piutang = this.db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM debts 
+      WHERE user_id = ? AND created_at BETWEEN ? AND ?
+    `).get(userId, startDate, endDate).total;
+    
+    const collected = this.db.prepare(`
+      SELECT COALESCE(SUM(paid_amount), 0) as total 
+      FROM installment_payments ip
+      JOIN loan_agreements la ON ip.agreement_id = la.id
+      WHERE la.lender_id = ? AND ip.paid_at BETWEEN ? AND ?
+    `).get(userId, startDate, endDate).total;
+    
+    return { piutang, hutang: 0, collected, lent: piutang };
+  }
 }
 
 module.exports = new ReportService();
