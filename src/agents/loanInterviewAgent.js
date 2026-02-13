@@ -1,5 +1,6 @@
 const loanAgreementService = require('../services/loanAgreementService');
 const userService = require('../services/userService');
+const pdfGenerator = require('../services/pdfGenerator');
 
 class LoanInterviewAgent {
   constructor(whatsappClient) {
@@ -16,7 +17,7 @@ class LoanInterviewAgent {
       lenderPhone,
       borrowerName,
       totalAmount: parseInt(totalAmount),
-      step: 1,
+      step: 0,
       data: {}
     };
     
@@ -27,13 +28,7 @@ class LoanInterviewAgent {
 Peminjam: ${borrowerName}
 Jumlah: Rp ${parseInt(totalAmount).toLocaleString('id-ID')}
 
-Silakan jawab beberapa pertanyaan untuk menentukan cicilan yang sesuai:
-
-1️⃣ Sumber pendapatan ${borrowerName}?
-   Ketik salah satu:
-   • GAJI (pegawai/karyawan)
-   • BISNIS (usaha/wiraswasta)
-   • LAINNYA`;
+Silakan masukkan nomor WhatsApp ${borrowerName} (contoh: 08123456789)`;
 
     await this.client.sendMessage(jid, message);
   }
@@ -46,6 +41,19 @@ Silakan jawab beberapa pertanyaan untuk menentukan cicilan yang sesuai:
     const response = text.trim().toUpperCase();
 
     switch (interview.step) {
+      case 0: // Borrower phone
+        const phoneRegex = /^\d{10,13}$/;
+        if (phoneRegex.test(text.trim())) {
+          interview.data.borrowerPhone = text.trim();
+          interview.step = 1;
+          
+          const msg = `1️⃣ Sumber pendapatan ${interview.borrowerName}?\n   • GAJI\n   • BISNIS\n   • LAINNYA`;
+          await this.client.sendMessage(jid, msg);
+        } else {
+          await this.client.sendMessage(jid, 'Format nomor salah. Ketik nomor WA (10-13 digit), contoh: 08123456789');
+        }
+        break;
+
       case 1: // Income source
         if (['GAJI', 'BISNIS', 'LAINNYA'].includes(response)) {
           interview.data.incomeSource = response;
@@ -146,25 +154,23 @@ Ketik: SETUJU atau UBAH [nominal]`;
 
       case 5: // Confirmation
         if (response === 'SETUJU') {
-          // Create draft agreement
           const draft = loanAgreementService.createDraft({
             lenderId: interview.lenderId,
             borrowerName: interview.borrowerName,
-            borrowerPhone: 'TBD', // Will be filled later
+            borrowerPhone: interview.data.borrowerPhone, // Use the phone from step 0
             totalAmount: interview.totalAmount,
             incomeSource: interview.data.incomeSource,
             monthlyIncome: interview.data.monthlyIncome,
             otherDebts: interview.data.otherDebts
           });
           
-          // Calculate first payment date
+          // Calculate dates
           const today = new Date();
           let firstPaymentDate = new Date(today.getFullYear(), today.getMonth(), interview.data.paymentDay);
           if (firstPaymentDate < today) {
             firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
           }
           
-          // Finalize agreement
           const agreement = loanAgreementService.finalizeAgreement(
             draft.agreementId,
             {
@@ -177,17 +183,36 @@ Ketik: SETUJU atau UBAH [nominal]`;
           interview.agreementId = draft.agreementId;
           interview.step = 6;
           
-          const confirmMsg = `✅ PERJANJIAN DIBUAT!
-
-ID Perjanjian: #${draft.agreementId}
-
-Langkah selanjutnya:
-1. Kirim surat perjanjian ke ${interview.borrowerName}
-2. Minta ${interview.borrowerName} setujui dengan membalas ID perjanjian
-
-Ketik KIRIM ${draft.agreementId} untuk mengirim surat perjanjian.`;
+          // Generate PDF
+          const lender = await userService.getUserById(interview.lenderId);
+          const installments = loanAgreementService.getInstallments(draft.agreementId);
+          const pdfResult = await pdfGenerator.generateAgreement(agreement, lender, installments);
           
-          await this.client.sendMessage(jid, confirmMsg);
+          // Send PDF directly to borrower!
+          const borrowerMsg = `Halo ${interview.borrowerName},
+
+Anda menerima penawaran pinjaman dari ${lender.business_name || lender.phone_number} sebesar Rp ${interview.totalAmount.toLocaleString('id-ID')}.
+
+Detail cicilan:
+• Nominal: Rp ${interview.calculation.installmentAmount.toLocaleString('id-ID')}/bulan
+• Jumlah: ${interview.calculation.months}x cicilan
+• Tanggal: Setiap tanggal ${interview.data.paymentDay}
+
+Silakan baca surat perjanjian terlampir dan balas:
+• SETUJU — untuk menerima
+• TOLAK — untuk menolak`;
+
+          await this.client.sendMessage(interview.data.borrowerPhone + '@s.whatsapp.net', borrowerMsg);
+          
+          // Send PDF to borrower
+          await this.client.sendMessage(interview.data.borrowerPhone + '@s.whatsapp.net', 
+            { document: { url: pdfResult.filepath }, fileName: `Perjanjian-${interview.borrowerName}.pdf`, mimetype: 'application/pdf' }
+          );
+          
+          // Notify Dani
+          await this.client.sendMessage(jid, 
+            `✅ Perjanjian dibuat dan langsung dikirim ke ${interview.borrowerName} (${interview.data.borrowerPhone})\n\nID: #${draft.agreementId}\nMenunggu persetujuan...`
+          );
           
         } else if (response.startsWith('UBAH ')) {
           const newAmount = parseInt(response.replace('UBAH ', ''));

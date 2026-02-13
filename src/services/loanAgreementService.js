@@ -75,7 +75,7 @@ class LoanAgreementService {
   finalizeAgreement(agreementId, { paymentDay, firstPaymentDate, interestRate = 0 }) {
     const stmt = this.db.prepare(`
       UPDATE loan_agreements 
-      SET payment_day = ?, first_payment_date = ?, interest_rate = ?, status = 'active'
+      SET payment_day = ?, first_payment_date = ?, interest_rate = ?, status = 'draft'
       WHERE id = ?
     `);
     
@@ -180,6 +180,34 @@ class LoanAgreementService {
 
   markInstallmentReminderSent(id) {
     const stmt = this.db.prepare(`UPDATE installment_payments SET reminder_sent = 1 WHERE id = ?`);
+    stmt.run(id);
+  }
+
+  findPendingByBorrowerPhone(phoneNumber) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM loan_agreements 
+      WHERE borrower_phone = ? AND status = 'draft'
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    return stmt.get(phoneNumber);
+  }
+
+  activateAgreement(id) {
+    const stmt = this.db.prepare(`
+      UPDATE loan_agreements 
+      SET status = 'active', signed_at = datetime('now') 
+      WHERE id = ?
+    `);
+    stmt.run(id);
+    return this.getAgreement(id);
+  }
+
+  cancelAgreement(id) {
+    const stmt = this.db.prepare(`
+      UPDATE loan_agreements 
+      SET status = 'cancelled' 
+      WHERE id = ?
+    `);
     stmt.run(id);
   }
 }

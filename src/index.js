@@ -3,10 +3,9 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const app = require('./api/server');
-const whatsappClient = require('./whatsapp/client');
-const MessageHandler = require('./whatsapp/handler');
 
 const PORT = process.env.PORT || 3000;
+const MOCK_MODE = process.env.MOCK_MODE === 'true';
 
 async function main() {
   console.log('🚀 Starting BukuHutang with OpenClaw Integration...');
@@ -20,13 +19,28 @@ async function main() {
     }
   });
 
-  // Connect to WhatsApp
-  await whatsappClient.connect();
-  global.whatsappClient = whatsappClient;
-  
-  // Setup message handler for incoming WA
-  const handler = new MessageHandler(whatsappClient);
-  whatsappClient.onMessage((msg) => handler.handle(msg));
+  if (!MOCK_MODE) {
+    // Only load WhatsApp if not in mock mode
+    const whatsappClient = require('./whatsapp/client');
+    const MessageHandler = require('./whatsapp/handler');
+    
+    // Connect to WhatsApp
+    await whatsappClient.connect();
+    global.whatsappClient = whatsappClient;
+    
+    // Setup message handler for incoming WA
+    const handler = new MessageHandler(whatsappClient);
+    whatsappClient.onMessage((msg) => handler.handle(msg));
+  } else {
+    console.log('📍 MOCK MODE: WhatsApp connection skipped');
+    // Create a mock WhatsApp client for API testing
+    global.whatsappClient = {
+      sendMessage: async (jid, text) => {
+        console.log(`[MOCK WA] To: ${jid}, Message: ${text}`);
+        return { key: { id: 'mock-msg-id' } };
+      }
+    };
+  }
 
   // Start API server
   app.listen(PORT, () => {

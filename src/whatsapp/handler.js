@@ -17,6 +17,10 @@ class MessageHandler {
 
     console.log(`Received from ${phoneNumber}: ${messageText}`);
 
+    // Check if this is a borrower response (not lender)
+    const borrowerHandled = await this.handleBorrowerResponse(phoneNumber, messageText, msg.key.remoteJid);
+    if (borrowerHandled) return;
+
     // Check if user is in active interview
     if (this.interviewAgent.isInInterview(phoneNumber)) {
       const handled = await this.interviewAgent.handleResponse(phoneNumber, messageText, msg.key.remoteJid);
@@ -208,6 +212,51 @@ LAINNYA:
 • INGATKAN [nama] - Kirim reminder manual`;
 
     await this.client.sendMessage(jid, help);
+  }
+
+  // Handle borrower responses (not in interview)
+  async handleBorrowerResponse(phoneNumber, messageText, jid) {
+    const text = messageText.trim().toUpperCase();
+    
+    // Check if this is a response to a pending agreement
+    const pendingAgreement = await loanAgreementService.findPendingByBorrowerPhone(phoneNumber);
+    
+    if (!pendingAgreement) return false;
+    
+    if (text === 'SETUJU') {
+      // Update agreement status
+      await loanAgreementService.activateAgreement(pendingAgreement.id);
+      
+      // Notify borrower
+      await this.client.sendMessage(jid, 
+        `✅ Perjanjian disetujui!\n\nCicilan pertama jatuh tempo: ${pendingAgreement.first_payment_date}\nAnda akan menerima reminder otomatis sebelum tanggal pembayaran.`
+      );
+      
+      // Notify lender (Dani)
+      const lender = await userService.getUserById(pendingAgreement.lender_id);
+      await this.client.sendMessage(lender.phone_number + '@s.whatsapp.net',
+        `🎉 ${pendingAgreement.borrower_name} telah MENYETUJUI perjanjian #${pendingAgreement.id}!\n\nCicilan aktif dimulai ${pendingAgreement.first_payment_date}.`
+      );
+      
+      return true;
+      
+    } else if (text === 'TOLAK') {
+      // Cancel agreement
+      await loanAgreementService.cancelAgreement(pendingAgreement.id);
+      
+      // Notify borrower
+      await this.client.sendMessage(jid, 'Perjanjian ditolak. Tidak ada hutang yang tercatat.');
+      
+      // Notify lender
+      const lender = await userService.getUserById(pendingAgreement.lender_id);
+      await this.client.sendMessage(lender.phone_number + '@s.whatsapp.net',
+        `❌ ${pendingAgreement.borrower_name} telah MENOLAK perjanjian #${pendingAgreement.id}.`
+      );
+      
+      return true;
+    }
+    
+    return false;
   }
 }
 
