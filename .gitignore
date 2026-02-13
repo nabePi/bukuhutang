@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.env
+auth_info_baileys/
+dist/
+coverage/
+*.db
+*.db-journal

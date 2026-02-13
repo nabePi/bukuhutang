@@ -1,0 +1,14 @@
+{
+  "name": "bukuhutang",
+  "version": "1.0.0",
+  "description": "WhatsApp-based debt tracker for UMKM and personal use",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "db:migrate": "node scripts/migrate.js"
+  },
+  "keywords": ["whatsapp", "debt-tracker", "umkm", "indonesia"],
+  "license": "MIT"
+}
