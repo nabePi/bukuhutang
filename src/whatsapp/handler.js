@@ -419,6 +419,78 @@ Sisa cicilan: ${updated.status === 'paid' ? '0' : 'Ada'}`;
     
     return false;
   }
+  // Admin command handlers
+  async handleDaftarTenant(command, jid) {
+    try {
+      const tenant = tenantService.createTenant(
+        command.id,
+        command.name,
+        command.phoneNumber,
+        'free'
+      );
+      
+      const reply = `✅ TENANT BERHASIL DIDAFTARKAN
+
+ID: ${tenant.id}
+Nama: ${tenant.name}
+Nomor: ${tenant.phoneNumber}
+Plan: ${tenant.plan}
+
+Database tenant telah dibuat dan siap digunakan.`;
+      
+      await this.client.sendMessage(jid, reply);
+    } catch (error) {
+      console.error('Error creating tenant:', error);
+      await this.client.sendMessage(jid, `❌ Gagal mendaftarkan tenant: ${error.message}`);
+    }
+  }
+
+  async handleListTenant(jid) {
+    try {
+      const tenants = tenantService.listTenants();
+      
+      if (tenants.length === 0) {
+        await this.client.sendMessage(jid, 'Belum ada tenant terdaftar.');
+        return;
+      }
+      
+      let reply = '📋 DAFTAR TENANT\n\n';
+      
+      tenants.forEach(t => {
+        const statusEmoji = t.active ? '✅' : '❌';
+        reply += `${statusEmoji} ${t.id}\n`;
+        reply += `   Nama: ${t.name}\n`;
+        reply += `   Nomor: ${t.phone_number}\n`;
+        reply += `   Plan: ${t.plan}\n`;
+        reply += `   Dibuat: ${new Date(t.created_at).toLocaleDateString('id-ID')}\n\n`;
+      });
+      
+      await this.client.sendMessage(jid, reply);
+    } catch (error) {
+      console.error('Error listing tenants:', error);
+      await this.client.sendMessage(jid, '❌ Gagal mengambil daftar tenant.');
+    }
+  }
+
+  async handleNonaktifTenant(command, jid) {
+    try {
+      const tenant = tenantService.getTenant(command.id);
+      
+      if (!tenant) {
+        await this.client.sendMessage(jid, `❌ Tenant dengan ID "${command.id}" tidak ditemukan.`);
+        return;
+      }
+      
+      tenantService.deactivateTenant(command.id);
+      
+      const reply = `✅ TENANT DINONAKTIFKAN\n\nID: ${tenant.id}\nNama: ${tenant.name}\nStatus: Non-aktif`;
+      
+      await this.client.sendMessage(jid, reply);
+    } catch (error) {
+      console.error('Error deactivating tenant:', error);
+      await this.client.sendMessage(jid, '❌ Gagal menonaktifkan tenant.');
+    }
+  }
 }
 
 module.exports = MessageHandler;
