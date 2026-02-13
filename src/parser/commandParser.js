@@ -167,6 +167,32 @@ function parseCommand(message) {
     return { type: 'STATISTIK' };
   }
 
+  // Admin commands for tenant management
+  // DAFTAR TENANT [id] [nama] [nomor]
+  const daftarTenantMatch = message.match(/^DAFTAR\s+TENANT\s+(\S+)\s+(\S+)\s+(\d+)/i);
+  if (daftarTenantMatch) {
+    return {
+      type: 'DAFTAR_TENANT',
+      id: daftarTenantMatch[1],
+      name: daftarTenantMatch[2],
+      phoneNumber: daftarTenantMatch[3]
+    };
+  }
+
+  // LIST TENANT
+  if (trimmed === 'LIST TENANT') {
+    return { type: 'LIST_TENANT' };
+  }
+
+  // NONAKTIF TENANT [id]
+  const nonaktifTenantMatch = message.match(/^NONAKTIF\s+TENANT\s+(\S+)/i);
+  if (nonaktifTenantMatch) {
+    return {
+      type: 'NONAKTIF_TENANT',
+      id: nonaktifTenantMatch[1]
+    };
+  }
+
   return { type: 'UNKNOWN', raw: message };
 }
 
