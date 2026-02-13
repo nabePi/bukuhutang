@@ -89,6 +89,16 @@ class DebtService {
       overdueCount: overdueCount.count
     };
   }
+
+  getPendingCount() {
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM debts WHERE status = 'pending'`);
+    return stmt.get().count;
+  }
+
+  getOverdueCount() {
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM debts WHERE status = 'pending' AND due_date < date('now')`);
+    return stmt.get().count;
+  }
 }
 
 module.exports = new DebtService();

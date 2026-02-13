@@ -113,4 +113,23 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_agreements_status ON loan_agreements(sta
 db.exec(`CREATE INDEX IF NOT EXISTS idx_installments_agreement ON installment_payments(agreement_id);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_installments_due ON installment_payments(due_date);`);
 
+// Policy table for OpenClaw config
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ops_policy (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// Default policies
+db.exec(`
+  INSERT OR IGNORE INTO ops_policy (key, value) VALUES
+  ('reminder_check_interval', '5'),
+  ('installment_check_interval', '1'),
+  ('max_retry_attempts', '3'),
+  ('whatsapp_rate_limit', '30'),
+  ('batch_size', '50');
+`);
+
 console.log('Migration completed successfully!');

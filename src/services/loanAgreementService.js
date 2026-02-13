@@ -154,6 +154,34 @@ class LoanAgreementService {
     `);
     return stmt.all(userId);
   }
+
+  getActiveCount() {
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE status = 'active'`);
+    return stmt.get().count;
+  }
+
+  getPendingInstallmentCount() {
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM installment_payments WHERE status = 'pending'`);
+    return stmt.get().count;
+  }
+
+  getUpcomingInstallments(limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT i.*, a.borrower_phone, a.borrower_name
+      FROM installment_payments i
+      JOIN loan_agreements a ON i.agreement_id = a.id
+      WHERE i.due_date <= date('now', '+7 days')
+      AND i.status = 'pending'
+      AND i.reminder_sent = 0
+      LIMIT ?
+    `);
+    return stmt.all(limit);
+  }
+
+  markInstallmentReminderSent(id) {
+    const stmt = this.db.prepare(`UPDATE installment_payments SET reminder_sent = 1 WHERE id = ?`);
+    stmt.run(id);
+  }
 }
 
 module.exports = new LoanAgreementService();
