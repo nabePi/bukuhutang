@@ -5,6 +5,7 @@ const LoanInterviewAgent = require('../agents/loanInterviewAgent');
 const pdfGenerator = require('../services/pdfGenerator');
 const loanAgreementService = require('../services/loanAgreementService');
 const { getTemplate } = require('../config/templates');
+const tenantService = require('../services/tenantService');
 
 class MessageHandler {
   constructor(whatsappClient) {
@@ -75,6 +76,22 @@ class MessageHandler {
           break;
         case 'PERJANJIAN':
           await this.handlePerjanjian(user, msg.key.remoteJid);
+          break;
+        case 'SETTING':
+          await this.handleSetting(user, command, msg.key.remoteJid);
+          break;
+        case 'HELP':
+          await this.sendHelp(msg.key.remoteJid);
+          break;
+        // Admin commands
+        case 'DAFTAR_TENANT':
+          await this.handleDaftarTenant(command, msg.key.remoteJid);
+          break;
+        case 'LIST_TENANT':
+          await this.handleListTenant(msg.key.remoteJid);
+          break;
+        case 'NONAKTIF_TENANT':
+          await this.handleNonaktifTenant(command, msg.key.remoteJid);
           break;
         default:
           await this.sendHelp(msg.key.remoteJid);
@@ -316,27 +333,44 @@ Sisa cicilan: ${updated.status === 'paid' ? '0' : 'Ada'}`;
     await this.client.sendMessage(jid, reply);
   }
 
+  async handleSetting(user, command, jid) {
+    if (command.key === 'template') {
+      const validTemplates = ['default', 'friendly', 'formal'];
+      if (validTemplates.includes(command.value)) {
+        await userService.updateUserSettings(user.id, 'reminder_style', command.value);
+        await this.client.sendMessage(jid, `✅ Template reminder diubah ke: ${command.value}`);
+      } else {
+        await this.client.sendMessage(jid, `❌ Template tidak valid. Pilihan: ${validTemplates.join(', ')}`);
+      }
+    } else {
+      await this.client.sendMessage(jid, `❌ Pengaturan "${command.key}" tidak dikenali.`);
+    }
+  }
+
   async sendHelp(jid) {
-    const help = `📘 CARA PAKAI BUKUHUTANG
+    const help = `📘 *CARA PAKAI BUKUHUTANG* 📘
 
-PERINTAH UTAMA:
-• PINJAM [nama] [jumlah] [hari]hari "[catatan]" - Catat piutang cepat
-• HUTANG [nama] [jumlah] [hari]hari - Catat hutang
-• STATUS - Lihat ringkasan
+💰 *CATAT HUTANG/PIUTANG*
+• 📝 PINJAM [nama] [jumlah] [hari]hari "[catatan]"
+• 📥 HUTANG [nama] [jumlah] [hari]hari
+• 📊 STATUS — Lihat ringkasan
 
-PERJANJIAN HUTANG (Dengan Cicilan):
-• BUAT PERJANJIAN [nama] [jumlah] - Buat perjanjian dengan interview
-• PERJANJIAN - Lihat daftar perjanjian
-• CICILAN - Lihat cicilan aktif
-• BAYAR CICILAN [nomor] - Bayar cicilan
+📋 *PERJANJIAN DENGAN CICILAN*
+• 🆕 BUAT PERJANJIAN [nama] [jumlah]
+• 📄 PERJANJIAN — Lihat daftar
+• 💳 CICILAN — Lihat status cicilan
+• 💵 BAYAR [nomor] — Bayar cicilan
 
-LAINNYA:
-• INGATKAN [nama] — Kirim reminder manual
+📈 *LAPORAN & EXPORT*
+• 📑 LAPORAN [tahun] [bulan]
+• 📤 EXPORT excel
+• 📈 STATISTIK
 
-PEMBAYARAN:
-• BAYAR [nomor] — Catat pembayaran cicilan
-• STATUS CICILAN [nama] — Cek status pembayaran
-• RIWAYAT [nama] — Lihat history pembayaran`;
+⚙️ *PENGATURAN*
+• 🔧 SETTING template [default/friendly/formal]
+• ℹ️ HELP — Tampilkan bantuan ini
+
+💡 *Contoh:* PINJAM Budi 500000 14hari "Beli semen"`;
 
     await this.client.sendMessage(jid, help);
   }
