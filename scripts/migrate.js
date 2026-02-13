@@ -65,4 +65,52 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_debts_user ON debts(user_id);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_debts_due ON debts(due_date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_debts_reminder ON debts(reminder_time);`);
 
+// Loan agreements table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS loan_agreements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lender_id INTEGER NOT NULL,
+    borrower_name TEXT NOT NULL,
+    borrower_phone TEXT NOT NULL,
+    borrower_id_number TEXT,
+    borrower_address TEXT,
+    total_amount INTEGER NOT NULL,
+    interest_rate REAL DEFAULT 0,
+    installment_amount INTEGER,
+    installment_count INTEGER,
+    first_payment_date DATE,
+    payment_day INTEGER,
+    income_source TEXT,
+    monthly_income INTEGER,
+    other_debts INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'draft',
+    agreement_pdf_path TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    signed_at DATETIME,
+    FOREIGN KEY (lender_id) REFERENCES users(id)
+  );
+`);
+
+// Installment payments table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS installment_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agreement_id INTEGER NOT NULL,
+    installment_number INTEGER,
+    due_date DATE NOT NULL,
+    amount INTEGER NOT NULL,
+    paid_amount INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    paid_at DATETIME,
+    reminder_sent BOOLEAN DEFAULT 0,
+    FOREIGN KEY (agreement_id) REFERENCES loan_agreements(id)
+  );
+`);
+
+// Loan agreement indexes
+db.exec(`CREATE INDEX IF NOT EXISTS idx_agreements_lender ON loan_agreements(lender_id);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_agreements_status ON loan_agreements(status);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_installments_agreement ON installment_payments(agreement_id);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_installments_due ON installment_payments(due_date);`);
+
 console.log('Migration completed successfully!');
