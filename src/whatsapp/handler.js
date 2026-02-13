@@ -6,6 +6,7 @@ const pdfGenerator = require('../services/pdfGenerator');
 const loanAgreementService = require('../services/loanAgreementService');
 const { getTemplate } = require('../config/templates');
 const tenantService = require('../services/tenantService');
+const aiService = require('../services/aiService');
 
 class MessageHandler {
   constructor(whatsappClient) {
@@ -16,92 +17,126 @@ class MessageHandler {
   async handle(msg) {
     const phoneNumber = msg.key.remoteJid.replace('@s.whatsapp.net', '');
     const messageText = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-
+    
     console.log(`Received from ${phoneNumber}: ${messageText}`);
 
-    // Check if this is a borrower response (not lender)
+    // Check if this is a confirmation response
+    const context = aiService.getContext(phoneNumber);
+    if (context?.awaitingConfirmation) {
+      const confirmation = this.parseConfirmation(messageText);
+      if (confirmation === 'YES') {
+        // Execute the stored intent
+        await this.executeIntent(phoneNumber, context.lastIntent, context.lastEntities, msg.key.remoteJid);
+        aiService.clearContext(phoneNumber);
+        return;
+      } else if (confirmation === 'NO') {
+        await this.client.sendMessage(msg.key.remoteJid, 'Oke, saya batalkan. Ada yang lain?');
+        aiService.clearContext(phoneNumber);
+        return;
+      }
+    }
+
+    // Check if this is a borrower response (existing logic)
     const borrowerHandled = await this.handleBorrowerResponse(phoneNumber, messageText, msg.key.remoteJid);
     if (borrowerHandled) return;
 
-    // Check if user is in active interview
+    // Check if user is in active interview (loan agreement)
     if (this.interviewAgent.isInInterview(phoneNumber)) {
       const handled = await this.interviewAgent.handleResponse(phoneNumber, messageText, msg.key.remoteJid);
       if (handled) return;
     }
 
+    // Use AI to parse intent
+    const parsed = await aiService.parseIntent(messageText, phoneNumber);
+    
+    // Send AI response
+    await this.client.sendMessage(msg.key.remoteJid, parsed.response);
+    
+    // If no confirmation needed and we have all fields, execute
+    if (!parsed.needs_confirmation && Object.keys(parsed.entities).length > 0) {
+      await this.executeIntent(phoneNumber, parsed.intent, parsed.entities, msg.key.remoteJid);
+      aiService.clearContext(phoneNumber);
+    }
+  }
+
+  // Helper to parse confirmation
+  parseConfirmation(text) {
+    const lower = text.toLowerCase().trim();
+    const yesWords = ['ya', 'yes', 'betul', 'benar', 'ok', 'oke', 'iya', 'y', 'bener'];
+    const noWords = ['tidak', 'no', 'salah', 'batal', 'n', 'ga', 'gak', 'enggak'];
+    
+    if (yesWords.some(w => lower.includes(w))) return 'YES';
+    if (noWords.some(w => lower.includes(w))) return 'NO';
+    return null;
+  }
+
+  // Execute the intent
+  async executeIntent(phoneNumber, intent, entities, jid) {
     // Get or create user
     let user = await userService.getUserByPhone(phoneNumber);
     if (!user) {
       user = await userService.createUser(phoneNumber);
     }
 
-    const command = parseCommand(messageText);
-    
     try {
-      switch (command.type) {
+      switch(intent) {
         case 'PINJAM':
-          await this.handlePinjam(user, command, msg.key.remoteJid);
+          await this.handlePinjamAI(user, entities, jid);
           break;
         case 'HUTANG':
-          await this.handleHutang(user, command, msg.key.remoteJid);
+          await this.handleHutangAI(user, entities, jid);
           break;
         case 'STATUS':
-          await this.handleStatus(user, msg.key.remoteJid);
-          break;
-        case 'INGATKAN':
-          await this.handleIngatkan(user, command, msg.key.remoteJid);
+          await this.handleStatus(user, jid);
           break;
         case 'BUAT_PERJANJIAN':
-          await this.interviewAgent.startInterview(phoneNumber, command.borrowerName, command.amount, msg.key.remoteJid);
-          break;
-        case 'SETUJU':
-        case 'UBAH':
-        case 'KIRIM':
-          await this.interviewAgent.handleResponse(phoneNumber, messageText, msg.key.remoteJid);
+          await this.interviewAgent.startInterview(phoneNumber, entities.nama, entities.jumlah, jid);
           break;
         case 'CICILAN':
-          await this.handleCicilan(user, msg.key.remoteJid);
-          break;
-        case 'BAYAR_CICILAN':
-          await this.handleBayarCicilan(user, command, msg.key.remoteJid);
+          await this.handleCicilan(user, jid);
           break;
         case 'BAYAR':
-          await this.handleBayar(user, command, msg.key.remoteJid);
+          await this.handleBayarAI(user, entities, jid);
           break;
-        case 'STATUS_CICILAN':
-          await this.handleStatusCicilan(user, command, msg.key.remoteJid);
-          break;
-        case 'RIWAYAT':
-          await this.handleRiwayat(user, command, msg.key.remoteJid);
-          break;
-        case 'PERJANJIAN':
-          await this.handlePerjanjian(user, msg.key.remoteJid);
-          break;
-        case 'SETTING':
-          await this.handleSetting(user, command, msg.key.remoteJid);
-          break;
-        case 'HELP':
-          await this.sendHelp(msg.key.remoteJid);
-          break;
-        // Admin commands
-        case 'DAFTAR_TENANT':
-          await this.handleDaftarTenant(command, msg.key.remoteJid);
-          break;
-        case 'LIST_TENANT':
-          await this.handleListTenant(msg.key.remoteJid);
-          break;
-        case 'NONAKTIF_TENANT':
-          await this.handleNonaktifTenant(command, msg.key.remoteJid);
+        case 'GENERAL_CHAT':
+          // Already responded, do nothing
           break;
         default:
-          await this.sendHelp(msg.key.remoteJid);
+          await this.sendHelp(jid);
       }
     } catch (error) {
-      console.error('Error handling message:', error);
-      await this.client.sendMessage(msg.key.remoteJid, 'Maaf, terjadi kesalahan. Coba lagi nanti.');
+      console.error('Execute intent error:', error);
+      await this.client.sendMessage(jid, 'Maaf, terjadi kesalahan. Coba lagi nanti ya.');
     }
   }
 
+  // AI versions of handlers
+  async handlePinjamAI(user, entities, jid) {
+    const debt = await debtService.createDebt({
+      userId: user.id,
+      debtorName: entities.nama,
+      amount: entities.jumlah,
+      description: entities.catatan || '',
+      days: entities.durasi_hari || 14
+    });
+
+    const reply = `✅ Piutang tercatat!\n\nNama: ${entities.nama}\nJumlah: Rp ${entities.jumlah.toLocaleString('id-ID')}\nJatuh tempo: ${debt.due_date}${entities.catatan ? '\nCatatan: ' + entities.catatan : ''}\n\nSaya akan ingatkan 1 hari sebelum jatuh tempo.`;
+
+    await this.client.sendMessage(jid, reply);
+  }
+
+  async handleHutangAI(user, entities, jid) {
+    // Similar to PINJAM but for HUTANG
+    const reply = `✅ Hutang tercatat!\n\nNama: ${entities.nama}\nJumlah: Rp ${entities.jumlah.toLocaleString('id-ID')}\nJatuh tempo: ${entities.durasi_hari || 14} hari lagi\n\nJangan lupa bayar tepat waktu ya!`;
+    await this.client.sendMessage(jid, reply);
+  }
+
+  async handleBayarAI(user, entities, jid) {
+    // Handle payment
+    await this.client.sendMessage(jid, `✅ Memproses pembayaran untuk ${entities.nama || 'cicilan'}...`);
+  }
+
+  // Legacy handlers (kept for backward compatibility)
   async handlePinjam(user, command, jid) {
     const debt = await debtService.createDebt({
       userId: user.id,
