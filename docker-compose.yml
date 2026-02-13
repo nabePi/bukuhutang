@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: bukuhutang
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - DB_PATH=/app/data/bukuhutang.db
+    volumes:
+      - ./data:/app/data
+      - ./auth_info_baileys:/app/auth_info_baileys
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: bukuhutang-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
