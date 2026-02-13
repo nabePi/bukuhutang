@@ -40,7 +40,59 @@ function parseCommand(message) {
       name: ingatkanMatch[1]
     };
   }
-  
+
+  // BUAT PERJANJIAN command
+  const buatPerjanjianMatch = message.match(/^BUAT\s+PERJANJIAN\s+(\S+)\s+(\d+)/i);
+  if (buatPerjanjianMatch) {
+    return {
+      type: 'BUAT_PERJANJIAN',
+      borrowerName: buatPerjanjianMatch[1],
+      amount: parseInt(buatPerjanjianMatch[2])
+    };
+  }
+
+  // SETUJU command
+  if (trimmed === 'SETUJU') {
+    return { type: 'SETUJU' };
+  }
+
+  // UBAH command
+  const ubahMatch = message.match(/^UBAH\s+(\d+)/i);
+  if (ubahMatch) {
+    return {
+      type: 'UBAH',
+      amount: parseInt(ubahMatch[1])
+    };
+  }
+
+  // KIRIM command
+  const kirimMatch = message.match(/^KIRIM\s+(\d+)/i);
+  if (kirimMatch) {
+    return {
+      type: 'KIRIM',
+      agreementId: parseInt(kirimMatch[1])
+    };
+  }
+
+  // CICILAN command
+  if (trimmed === 'CICILAN') {
+    return { type: 'CICILAN' };
+  }
+
+  // BAYAR CICILAN command
+  const bayarMatch = message.match(/^BAYAR\s+CICILAN\s+(\d+)/i);
+  if (bayarMatch) {
+    return {
+      type: 'BAYAR_CICILAN',
+      installmentNumber: parseInt(bayarMatch[1])
+    };
+  }
+
+  // PERJANJIAN command
+  if (trimmed === 'PERJANJIAN') {
+    return { type: 'PERJANJIAN' };
+  }
+
   return { type: 'UNKNOWN', raw: message };
 }
 

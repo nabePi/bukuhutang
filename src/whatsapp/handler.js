@@ -1,17 +1,27 @@
 const { parseCommand } = require('../parser/commandParser');
 const debtService = require('../services/debtService');
 const userService = require('../services/userService');
+const LoanInterviewAgent = require('../agents/loanInterviewAgent');
+const pdfGenerator = require('../services/pdfGenerator');
+const loanAgreementService = require('../services/loanAgreementService');
 
 class MessageHandler {
   constructor(whatsappClient) {
     this.client = whatsappClient;
+    this.interviewAgent = new LoanInterviewAgent(whatsappClient);
   }
 
   async handle(msg) {
     const phoneNumber = msg.key.remoteJid.replace('@s.whatsapp.net', '');
     const messageText = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-    
+
     console.log(`Received from ${phoneNumber}: ${messageText}`);
+
+    // Check if user is in active interview
+    if (this.interviewAgent.isInInterview(phoneNumber)) {
+      const handled = await this.interviewAgent.handleResponse(phoneNumber, messageText, msg.key.remoteJid);
+      if (handled) return;
+    }
 
     // Get or create user
     let user = await userService.getUserByPhone(phoneNumber);
@@ -34,6 +44,23 @@ class MessageHandler {
           break;
         case 'INGATKAN':
           await this.handleIngatkan(user, command, msg.key.remoteJid);
+          break;
+        case 'BUAT_PERJANJIAN':
+          await this.interviewAgent.startInterview(phoneNumber, command.borrowerName, command.amount, msg.key.remoteJid);
+          break;
+        case 'SETUJU':
+        case 'UBAH':
+        case 'KIRIM':
+          await this.interviewAgent.handleResponse(phoneNumber, messageText, msg.key.remoteJid);
+          break;
+        case 'CICILAN':
+          await this.handleCicilan(user, msg.key.remoteJid);
+          break;
+        case 'BAYAR_CICILAN':
+          await this.handleBayarCicilan(user, command, msg.key.remoteJid);
+          break;
+        case 'PERJANJIAN':
+          await this.handlePerjanjian(user, msg.key.remoteJid);
           break;
         default:
           await this.sendHelp(msg.key.remoteJid);
@@ -111,8 +138,74 @@ class MessageHandler {
     await this.client.sendMessage(jid, `✅ Reminder terkirim ke ${target.debtor_name}`);
   }
 
+  async handleCicilan(user, jid) {
+    const agreements = loanAgreementService.getUserAgreements(user.id);
+    const activeAgreements = agreements.filter(a => a.status === 'active');
+
+    if (activeAgreements.length === 0) {
+      await this.client.sendMessage(jid, 'Belum ada cicilan aktif.');
+      return;
+    }
+
+    let reply = '📋 DAFTAR CICILAN AKTIF\n\n';
+
+    for (const agreement of activeAgreements) {
+      const installments = loanAgreementService.getPendingInstallments(agreement.id);
+      const nextPayment = installments[0];
+
+      reply += `📄 ${agreement.borrower_name}\n`;
+      reply += `   Total: Rp ${agreement.total_amount.toLocaleString('id-ID')}\n`;
+      reply += `   Cicilan: Rp ${agreement.installment_amount.toLocaleString('id-ID')}/bulan\n`;
+      if (nextPayment) {
+        reply += `   Bayar berikutnya: ${nextPayment.due_date}\n`;
+      }
+      reply += '\n';
+    }
+
+    reply += 'Ketik BAYAR CICILAN [nomor] untuk membayar';
+    await this.client.sendMessage(jid, reply);
+  }
+
+  async handleBayarCicilan(user, command, jid) {
+    await this.client.sendMessage(jid, `✅ Memproses pembayaran cicilan #${command.installmentNumber}...`);
+  }
+
+  async handlePerjanjian(user, jid) {
+    const agreements = loanAgreementService.getUserAgreements(user.id);
+
+    if (agreements.length === 0) {
+      await this.client.sendMessage(jid, 'Belum ada perjanjian. Ketik BUAT PERJANJIAN [nama] [jumlah]');
+      return;
+    }
+
+    let reply = '📋 DAFTAR PERJANJIAN\n\n';
+
+    agreements.forEach(a => {
+      const statusEmoji = a.status === 'active' ? '✅' : a.status === 'draft' ? '📝' : '✅';
+      reply += `${statusEmoji} #${a.id} - ${a.borrower_name}\n`;
+      reply += `   Rp ${a.total_amount.toLocaleString('id-ID')} | ${a.installment_count}x cicilan\n`;
+      reply += `   Status: ${a.status}\n\n`;
+    });
+
+    await this.client.sendMessage(jid, reply);
+  }
+
   async sendHelp(jid) {
-    const help = `📘 CARA PAKAI BUKUHUTANG\n\nPerintah:\n1️⃣ PINJAM [nama] [jumlah] [hari]hari "[catatan]"\n2️⃣ HUTANG [nama] [jumlah] [hari]hari\n3️⃣ STATUS\n4️⃣ INGATKAN [nama]\n\nContoh: PINJAM Budi 500000 14hari "Beli semen"`;
+    const help = `📘 CARA PAKAI BUKUHUTANG
+
+PERINTAH UTAMA:
+• PINJAM [nama] [jumlah] [hari]hari "[catatan]" - Catat piutang cepat
+• HUTANG [nama] [jumlah] [hari]hari - Catat hutang
+• STATUS - Lihat ringkasan
+
+PERJANJIAN HUTANG (Dengan Cicilan):
+• BUAT PERJANJIAN [nama] [jumlah] - Buat perjanjian dengan interview
+• PERJANJIAN - Lihat daftar perjanjian
+• CICILAN - Lihat cicilan aktif
+• BAYAR CICILAN [nomor] - Bayar cicilan
+
+LAINNYA:
+• INGATKAN [nama] - Kirim reminder manual`;
 
     await this.client.sendMessage(jid, help);
   }
