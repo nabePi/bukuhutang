@@ -39,6 +39,17 @@ class UserService {
     stmt.run(mode, userId);
     return this.getUserById(userId);
   }
+
+  updateUserSettings(userId, key, value) {
+    // For now, we'll store settings in a simple key-value format
+    // If the users table has a settings column, update it
+    // Otherwise, we might need to create a settings table
+    const stmt = this.db.prepare(`
+      UPDATE users SET ${key} = ?, updated_at = datetime('now') WHERE id = ?
+    `);
+    stmt.run(value, userId);
+    return this.getUserById(userId);
+  }
 }
 
 module.exports = new UserService();

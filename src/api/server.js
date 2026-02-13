@@ -3,9 +3,15 @@ const debtService = require('../services/debtService');
 const loanAgreementService = require('../services/loanAgreementService');
 const userService = require('../services/userService');
 const { parseCommand } = require('../parser/commandParser');
+const { authenticateApiKey, rateLimit, validateRequest, requestLogger } = require('../middleware/security');
 
 const app = express();
 app.use(express.json());
+
+// Apply middleware
+app.use(requestLogger);
+app.use(rateLimit);
+app.use(validateRequest);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -13,7 +19,7 @@ app.get('/health', (req, res) => {
 });
 
 // OpenClaw Webhook Endpoint
-app.post('/api/openclaw/webhook', async (req, res) => {
+app.post('/api/openclaw/webhook', authenticateApiKey, async (req, res) => {
   const { action, payload } = req.body;
   
   try {
@@ -77,7 +83,7 @@ app.post('/api/openclaw/webhook', async (req, res) => {
 });
 
 // Job Report Endpoint (OpenClaw report back results)
-app.post('/api/openclaw/report', async (req, res) => {
+app.post('/api/openclaw/report', authenticateApiKey, async (req, res) => {
   const { jobType, jobId, status, error, metadata } = req.body;
   
   try {

@@ -1,3 +1,11 @@
+function validateAmount(amount) {
+  return Number.isInteger(amount) && amount > 0 && amount < 1000000000;
+}
+
+function validateDays(days) {
+  return Number.isInteger(days) && days > 0 && days <= 365;
+}
+
 function parseCommand(message) {
   const trimmed = message.trim().toUpperCase();
   
@@ -120,7 +128,22 @@ function parseCommand(message) {
     };
   }
 
+  // SETTING command
+  const settingMatch = message.match(/^SETTING\s+(\S+)\s+(\S+)/i);
+  if (settingMatch) {
+    return {
+      type: 'SETTING',
+      key: settingMatch[1],
+      value: settingMatch[2]
+    };
+  }
+
+  // HELP command
+  if (trimmed === 'HELP') {
+    return { type: 'HELP' };
+  }
+
   return { type: 'UNKNOWN', raw: message };
 }
 
-module.exports = { parseCommand };
+module.exports = { parseCommand, validateAmount, validateDays };

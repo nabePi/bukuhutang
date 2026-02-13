@@ -4,6 +4,7 @@ const userService = require('../services/userService');
 const LoanInterviewAgent = require('../agents/loanInterviewAgent');
 const pdfGenerator = require('../services/pdfGenerator');
 const loanAgreementService = require('../services/loanAgreementService');
+const { getTemplate } = require('../config/templates');
 
 class MessageHandler {
   constructor(whatsappClient) {
