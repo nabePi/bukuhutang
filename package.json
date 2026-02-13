@@ -9,6 +9,14 @@
     "test": "jest",
     "db:migrate": "node scripts/migrate.js"
   },
-  "keywords": ["whatsapp", "debt-tracker", "umkm", "indonesia"],
-  "license": "MIT"
+  "keywords": [
+    "whatsapp",
+    "debt-tracker",
+    "umkm",
+    "indonesia"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2"
+  }
 }
