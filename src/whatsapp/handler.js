@@ -137,16 +137,20 @@ class MessageHandler {
     const target = debts.find(d => d.debtor_name.toLowerCase() === command.name.toLowerCase());
 
     if (!target) {
-      await this.client.sendMessage(jid, `Tidak menemukan piutang dengan nama "${command.name}"`);
+      await this.client.sendMessage(jid, `❌ Tidak menemukan piutang dengan nama "${command.name}"`);
       return;
     }
 
     if (!target.debtor_phone) {
-      await this.client.sendMessage(jid, `${target.debtor_name} tidak memiliki nomor WA.`);
+      await this.client.sendMessage(jid, `⚠️ ${target.debtor_name} tidak memiliki nomor WA.`);
       return;
     }
 
-    const reminderMsg = `Halo ${target.debtor_name},\n\nIni pengingat pembayaran:\nJumlah: Rp ${target.amount.toLocaleString('id-ID')}\nUntuk: ${target.description || 'Piutang'}\nJatuh tempo: ${target.due_date}\n\nMohon konfirmasi jika sudah membayar. Terima kasih!`;
+    // Get user's preferred template style (can be stored in user settings)
+    const templateStyle = user.reminder_style || 'default';
+    const template = getTemplate('reminder', templateStyle);
+    
+    const reminderMsg = template(target.debtor_name, target.amount, target.due_date);
 
     await this.client.sendMessage(target.debtor_phone + '@s.whatsapp.net', reminderMsg);
     await this.client.sendMessage(jid, `✅ Reminder terkirim ke ${target.debtor_name}`);

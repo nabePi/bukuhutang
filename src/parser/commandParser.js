@@ -143,6 +143,30 @@ function parseCommand(message) {
     return { type: 'HELP' };
   }
 
+  // LAPORAN command
+  const laporanMatch = message.match(/^LAPORAN\s+(\d{4})\s+(\d{1,2})/i);
+  if (laporanMatch) {
+    return {
+      type: 'LAPORAN',
+      year: parseInt(laporanMatch[1]),
+      month: parseInt(laporanMatch[2])
+    };
+  }
+
+  // EXPORT command
+  const exportMatch = message.match(/^EXPORT\s+(\S+)/i);
+  if (exportMatch) {
+    return {
+      type: 'EXPORT',
+      format: exportMatch[1] // 'excel' or 'pdf'
+    };
+  }
+
+  // STATISTIK command
+  if (trimmed === 'STATISTIK') {
+    return { type: 'STATISTIK' };
+  }
+
   return { type: 'UNKNOWN', raw: message };
 }
 
