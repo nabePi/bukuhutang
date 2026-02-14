@@ -196,4 +196,25 @@ async function getPolicyFromDB() {
   return policy;
 }
 
+// Import admin routes
+const adminRoutes = require('./adminRoutes');
+
+// Admin routes
+app.use('/api/admin', adminRoutes);
+
+// Serve admin dashboard
+app.get('/admin/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../public/admin/dashboard.html'));
+});
+
+app.get('/admin/login', (req, res) => {
+    res.send(`
+        <h1>Super Admin Login</h1>
+        <form method="POST" action="/api/admin/login">
+            <input type="password" name="apiKey" placeholder="Enter Super Admin API Key" />
+            <button type="submit">Login</button>
+        </form>
+    `);
+});
+
 module.exports = app;
