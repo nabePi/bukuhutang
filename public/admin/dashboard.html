@@ -255,9 +255,106 @@
             .tabs { flex-direction: column; }
             .tab { width: 100%; }
         }
+        
+        /* Custom Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            max-width: 400px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            animation: modalSlideIn 0.3s ease;
+        }
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .modal-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #f8fafc;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-message {
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            background: #2563eb;
+        }
+        .modal-btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        .modal-btn-secondary:hover {
+            background: #475569;
+        }
+        .modal-btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .modal-btn-danger:hover {
+            background: #dc2626;
+        }
     </style>
 </head>
 <body>
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">📢 Pemberitahuan</div>
+            <div class="modal-message" id="modalMessage">Message here</div>
+            <div class="modal-buttons" id="modalButtons">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <header>
             <h1>📊 BukuHutang Dashboard</h1>
@@ -596,7 +693,7 @@
                         document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 QR Expired</span>';
                         document.getElementById('btnGenerateQR').disabled = false;
                         document.getElementById('btnGenerateQR').textContent = '📱 Generate QR Code';
-                        alert('QR Code expired. Silakan generate ulang.');
+                        showModal('QR Code expired. Silakan generate ulang.', 'QR Expired', 'warning');
                     }, 120000); // 2 menit
                     
                 } else {
@@ -618,14 +715,15 @@
         }
         
         async function logoutWA() {
-            if (!confirm('Yakin logout?')) return;
-            try {
-                await fetch('/api/public/whatsapp/logout', { method: 'POST' });
-                alert('WhatsApp logged out');
-                refreshWA();
-            } catch (e) {
-                alert('Gagal logout');
-            }
+            showConfirm('Yakin logout dari WhatsApp?', async () => {
+                try {
+                    await fetch('/api/public/whatsapp/logout', { method: 'POST' });
+                    showModal('WhatsApp logged out', 'Logout Berhasil', 'success');
+                    refreshWA();
+                } catch (e) {
+                    showModal('Gagal logout', 'Logout Gagal', 'error');
+                }
+            }, null, 'Konfirmasi Logout');
         }
         
         // Load Stats
@@ -680,7 +778,7 @@
                         <td>${b.phone}</td>
                         <td>${formatRupiah(b.total)}</td>
                         <td><span class="status active">Active</span></td>
-                        <td><button class="btn btn-primary" onclick="alert('Kirim reminder ke ${b.name}')">📱 Reminder</button></td>
+                        <td><button class="btn btn-primary" onclick="showModal('Reminder akan dikirim ke ' + '${b.name}', 'Kirim Reminder')">📱 Reminder</button></td>
                     </tr>
                 `).join('');
             } catch (e) {
@@ -898,6 +996,66 @@
                 document.getElementById('jobsContent').innerHTML = '<p class="empty">Gagal memuat jobs</p>';
             }
         }
+        
+        // Custom Modal Functions
+        function showModal(message, title = 'Pemberitahuan', type = 'info') {
+            const modal = document.getElementById('customModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalButtons = document.getElementById('modalButtons');
+            
+            const icons = {
+                'info': '📢',
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️'
+            };
+            
+            modalTitle.textContent = `${icons[type] || '📢'} ${title}`;
+            modalMessage.textContent = message;
+            modalButtons.innerHTML = `<button class="modal-btn modal-btn-primary" onclick="closeModal()">OK</button>`;
+            
+            modal.classList.add('active');
+        }
+        
+        function showConfirm(message, onConfirm, onCancel, title = 'Konfirmasi') {
+            const modal = document.getElementById('customModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalButtons = document.getElementById('modalButtons');
+            
+            modalTitle.textContent = `❓ ${title}`;
+            modalMessage.textContent = message;
+            
+            window._modalConfirmCallback = onConfirm;
+            window._modalCancelCallback = onCancel;
+            
+            modalButtons.innerHTML = `
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal(); if(window._modalCancelCallback) window._modalCancelCallback();">Batal</button>
+                <button class="modal-btn modal-btn-danger" onclick="closeModal(); if(window._modalConfirmCallback) window._modalConfirmCallback();">Ya</button>
+            `;
+            
+            modal.classList.add('active');
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('customModal');
+            modal.classList.remove('active');
+            window._modalConfirmCallback = null;
+            window._modalCancelCallback = null;
+        }
+        
+        // Close modal when clicking overlay
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('customModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal();
+                    }
+                });
+            }
+        });
         
         // Init
         window.onload = function() {
