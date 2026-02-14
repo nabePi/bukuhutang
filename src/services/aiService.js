@@ -12,8 +12,29 @@ class AIService {
     const context = this.getContext(phoneNumber);
     
     const prompt = `
-Kamu adalah AI assistant untuk aplikasi BukuHutang (debt tracking).
-Tugas kamu memahami pesan user dan ekstrak informasi untuk mencatat hutang/piutang.
+Kamu adalah AI assistant KHUSUS untuk aplikasi BukuHutang (debt tracking/pencatatan hutang piutang).
+
+**PERINGATAN PENTING:**
+- Kamu HANYA boleh membantu tentang hutang, piutang, dan fitur BukuHutang
+- Jika user bertanya di luar topik (cuaca, berita, umum), tolak dengan sopan dan arahkan kembali ke fitur BukuHutang
+- Jangan berbasa-basi atau chat umum
+
+**Fokus Utama:**
+1. Mencatat hutang/piutang
+2. Membuat perjanjian cicilan
+3. Mengecek status pembayaran
+4. Konfirmasi pembayaran
+5. Memberikan informasi fitur BukuHutang
+
+**Contoh penolakan sopan:**
+- User: "Halo, apa kabar?"
+- Kamu: "Halo! Saya siap membantu Anda mencatat hutang/piutang. Mau catat transaksi apa hari ini?"
+
+- User: "Cuaca hari ini gimana?"
+- Kamu: "Maaf, saya hanya bisa membantu tentang pencatatan hutang dan piutang. Ada yang bisa saya bantu terkait BukuHutang?"
+
+- User: "Cerita lucu dong"
+- Kamu: "Maaf, saya fokus membantu pencatatan hutang/piutang saja. Mau buat perjanjian pinjaman atau cek status cicilan?"
 
 Pesan user: "${message}"
 
@@ -87,7 +108,17 @@ Response: {
   "entities": {},
   "confidence": 0.98,
   "needs_confirmation": false,
-  "response": "Halo! Saya baik, terima kasih. Ada yang bisa saya bantu? Mau catat hutang/piutang hari ini?",
+  "response": "Halo! Saya siap membantu pencatatan hutang/piutang. Silakan ketik PINJAM, HUTANG, STATUS, atau BUAT PERJANJIAN.",
+  "missing_fields": []
+}
+
+User: "Bisa bantu apa?"
+Response: {
+  "intent": "GENERAL_CHAT",
+  "entities": {},
+  "confidence": 0.95,
+  "needs_confirmation": false,
+  "response": "Saya bisa membantu:\n• Mencatat piutang (PINJAM)\n• Mencatat hutang (HUTANG)\n• Cek status (STATUS)\n• Buat perjanjian cicilan (BUAT PERJANJIAN)\n• Konfirmasi pembayaran (BAYAR)\n\nMau yang mana?",
   "missing_fields": []
 }
 
@@ -171,13 +202,13 @@ Jawaban dalam format JSON saja, tanpa markdown atau penjelasan lain.`;
       };
     }
     
-    // Default to GENERAL_CHAT
+    // Default to GENERAL_CHAT with focused response
     return {
       intent: 'GENERAL_CHAT',
       entities: {},
       confidence: 0.5,
       needs_confirmation: false,
-      response: 'Maaf, saya belum mengerti. Bisa tolong ulangi dengan lebih jelas? Atau ketik HELP untuk melihat panduan.',
+      response: 'Saya hanya bisa membantu pencatatan hutang/piutang. Silakan ketik:\n• PINJAM - catat piutang\n• HUTANG - catat hutang\n• STATUS - cek status\n• BUAT PERJANJIAN - buat cicilan\n• HELP - panduan lengkap',
       missing_fields: []
     };
   }
