@@ -9,6 +9,23 @@ function validateDays(days) {
 function parseCommand(message) {
   const trimmed = message.trim().toUpperCase();
   
+  // DAFTAR command for tenant registration
+  // Format: DAFTAR [nama] [nomor_wa] [email_opsional]
+  const daftarMatch = message.match(/^DAFTAR\s+(\S+)\s+(\S+)(?:\s+(\S+))?/i);
+  if (daftarMatch) {
+    return {
+      type: 'DAFTAR',
+      name: daftarMatch[1],
+      phone: daftarMatch[2],
+      email: daftarMatch[3] || ''
+    };
+  }
+
+  // STATUS AKUN command
+  if (trimmed === 'STATUS AKUN') {
+    return { type: 'STATUS_AKUN' };
+  }
+
   // PINJAM command
   // Format: PINJAM [name] [amount] [days]hari "[note]"
   const pinjamMatch = message.match(/^PINJAM\s+(\S+)\s+(\d+)\s+(\d+)hari(?:\s+"([^"]*)")?/i);
@@ -62,6 +79,11 @@ function parseCommand(message) {
   // SETUJU command
   if (trimmed === 'SETUJU') {
     return { type: 'SETUJU' };
+  }
+
+  // TOLAK command
+  if (trimmed === 'TOLAK') {
+    return { type: 'TOLAK' };
   }
 
   // UBAH command

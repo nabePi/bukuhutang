@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateApiKey } = require('../middleware/security');
-const tenantService = require('../services/tenantService');
+const tenantRegistrationService = require('../services/tenantRegistrationService');
 const debtService = require('../services/debtService');
 const loanAgreementService = require('../services/loanAgreementService');
-const reportService = require('../services/reportService');
+const multiSessionManager = require('../whatsapp/multiSessionManager');
 
 // Apply super admin auth
 router.use(authenticateApiKey);
@@ -29,20 +29,21 @@ router.get('/stats', requireSuperAdmin, async (req, res) => {
     }
 });
 
-// Get all tenants
+// Get all tenants with enriched data
 router.get('/tenants', requireSuperAdmin, async (req, res) => {
     try {
-        const tenants = await tenantService.listTenants();
+        const tenants = tenantRegistrationService.listAllTenants();
         
-        // Enrich with data
-        const enrichedTenants = await Promise.all(tenants.map(async t => {
-            const stats = await getTenantStats(t.id);
+        // Enrich with WhatsApp session status
+        const enrichedTenants = tenants.map(t => {
+            const session = multiSessionManager.getSession(t.id);
             return {
                 ...t,
-                totalPiutang: stats.totalPiutang,
-                agreementCount: stats.agreementCount
+                whatsapp_connected: session?.connected || false,
+                waiting_for_qr: session?.qr && !session?.connected,
+                has_qr: !!session?.qr
             };
-        }));
+        });
         
         res.json({ tenants: enrichedTenants });
     } catch (error) {
@@ -50,27 +51,122 @@ router.get('/tenants', requireSuperAdmin, async (req, res) => {
     }
 });
 
-// Toggle tenant status
-router.post('/tenant/:id/toggle', requireSuperAdmin, async (req, res) => {
+// Register new tenant
+router.post('/tenants/register', requireSuperAdmin, async (req, res) => {
     try {
-        const tenant = await tenantService.getTenant(req.params.id);
-        if (tenant.active) {
-            await tenantService.deactivateTenant(req.params.id);
-        } else {
-            await tenantService.activateTenant(req.params.id);
+        const { phoneNumber, name, email } = req.body;
+        
+        if (!phoneNumber || !name) {
+            return res.status(400).json({ error: 'Phone number and name are required' });
         }
-        res.json({ success: true });
+        
+        const result = await tenantRegistrationService.registerTenant({
+            phoneNumber,
+            name,
+            email
+        });
+        
+        res.json({ success: true, tenant: result });
+    } catch (error) {
+        console.error('Register tenant error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get tenant QR code
+router.get('/tenant/:id/qr', requireSuperAdmin, async (req, res) => {
+    try {
+        const qr = multiSessionManager.getQR(parseInt(req.params.id));
+        
+        if (!qr) {
+            return res.status(404).json({ error: 'No QR code available. WhatsApp may already be connected.' });
+        }
+        
+        res.json({ qr });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Activate tenant (after QR scan)
+router.post('/tenant/:id/activate', requireSuperAdmin, async (req, res) => {
+    try {
+        const result = await tenantRegistrationService.activateTenant(parseInt(req.params.id));
+        res.json({ success: true, result });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Toggle tenant status (enable/disable)
+router.post('/tenant/:id/toggle', requireSuperAdmin, async (req, res) => {
+    try {
+        const tenant = tenantRegistrationService.getTenantStatus(parseInt(req.params.id));
+        if (!tenant) {
+            return res.status(404).json({ error: 'Tenant not found' });
+        }
+        
+        if (tenant.status === 'active') {
+            await tenantRegistrationService.deactivateTenant(parseInt(req.params.id));
+            res.json({ success: true, status: 'inactive' });
+        } else {
+            const result = await tenantRegistrationService.activateTenant(parseInt(req.params.id));
+            res.json({ success: true, status: 'active', result });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update tenant plan
+router.post('/tenant/:id/plan', requireSuperAdmin, async (req, res) => {
+    try {
+        const { plan } = req.body;
+        const result = await tenantRegistrationService.updateTenantPlan(parseInt(req.params.id), plan);
+        res.json({ success: true, result });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 });
 
 // Get tenant detail
 router.get('/tenant/:id', requireSuperAdmin, async (req, res) => {
     try {
-        const tenant = await tenantService.getTenant(req.params.id);
-        const stats = await getTenantStats(req.params.id);
-        res.json({ tenant: { ...tenant, ...stats } });
+        const stats = tenantRegistrationService.getTenantStats(parseInt(req.params.id));
+        const session = multiSessionManager.getSession(parseInt(req.params.id));
+        
+        if (!stats) {
+            return res.status(404).json({ error: 'Tenant not found' });
+        }
+        
+        res.json({ 
+            tenant: { 
+                ...stats,
+                whatsapp_connected: session?.connected || false,
+                waiting_for_qr: session?.qr && !session?.connected
+            } 
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add AI credits to tenant
+router.post('/tenant/:id/credits', requireSuperAdmin, async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const result = tenantRegistrationService.addAICredits(parseInt(req.params.id), amount);
+        res.json({ success: true, result });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all WhatsApp sessions status
+router.get('/sessions', requireSuperAdmin, async (req, res) => {
+    try {
+        const sessions = multiSessionManager.getAllSessions();
+        res.json({ sessions });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -78,7 +174,8 @@ router.get('/tenant/:id', requireSuperAdmin, async (req, res) => {
 
 // System stats helper
 async function getSystemStats() {
-    const tenants = await tenantService.listTenants();
+    const tenants = tenantRegistrationService.listAllTenants();
+    const sessions = multiSessionManager.getAllSessions();
     
     let totalSystemPiutang = 0;
     let totalAgreements = 0;
@@ -88,30 +185,46 @@ async function getSystemStats() {
     let globalOverdue = 0;
     
     for (const tenant of tenants) {
-        if (!tenant.active) continue;
+        totalSystemPiutang += tenant.debt_count * 1000000; // Approximation
+        totalAgreements += tenant.agreement_count;
         
-        const stats = await getTenantStats(tenant.id);
-        totalSystemPiutang += stats.totalPiutang;
-        totalAgreements += stats.agreementCount;
-        activeAgreements += stats.activeAgreements;
-        globalPaid += stats.paidInstallments;
-        globalPending += stats.pendingInstallments;
-        globalOverdue += stats.overdueInstallments;
+        const stats = tenantRegistrationService.getTenantStats(tenant.id);
+        if (stats) {
+            activeAgreements += stats.agreements?.active_agreements || 0;
+            globalPaid += stats.agreements?.paid || 0;
+            globalPending += stats.agreements?.pending || 0;
+            globalOverdue += stats.agreements?.overdue || 0;
+        }
     }
+    
+    const activeSessions = sessions.filter(s => s.connected).length;
+    const pendingQR = sessions.filter(s => s.hasQR && !s.connected).length;
     
     return {
         totalUsers: tenants.length,
-        activeUsers: tenants.filter(t => t.active).length,
-        inactiveUsers: tenants.filter(t => !t.active).length,
+        activeUsers: tenants.filter(t => t.status === 'active').length,
+        inactiveUsers: tenants.filter(t => t.status === 'inactive').length,
+        pendingQRUsers: tenants.filter(t => t.status === 'pending_qr').length,
         totalSystemPiutang,
         totalAgreements,
         activeAgreements,
+        whatsappSessions: {
+            total: sessions.length,
+            connected: activeSessions,
+            pendingQR: pendingQR,
+            disconnected: sessions.length - activeSessions - pendingQR
+        },
         alerts: generateSystemAlerts(tenants),
         userGrowthLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        userGrowthData: [5, 8, 12, 15, 18, 22, 25, 28, 32, 35, 38, 42], // Sample data
+        userGrowthData: [5, 8, 12, 15, 18, 22, 25, 28, 32, 35, 38, 42],
         transactionLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
         transactionValues: [5000000, 8000000, 12000000, 15000000, 18000000, 22000000],
-        planDistribution: [25, 15, 8, 2], // Free, Basic, Pro, Enterprise
+        planDistribution: [
+            tenants.filter(t => t.plan === 'free').length,
+            tenants.filter(t => t.plan === 'basic').length,
+            tenants.filter(t => t.plan === 'pro').length,
+            tenants.filter(t => t.plan === 'enterprise').length
+        ],
         globalPaid,
         globalPending,
         globalOverdue,
@@ -120,17 +233,18 @@ async function getSystemStats() {
             name: t.name,
             phone: t.phone_number,
             plan: t.plan,
-            active: t.active,
+            status: t.status,
             createdAt: t.created_at,
-            totalPiutang: 0, // Will be filled
-            agreementCount: 0
+            totalPiutang: t.debt_count,
+            agreementCount: t.agreement_count
         })),
         recentActivity: generateRecentActivity(),
         usage: {
             messagesToday: 156,
             aiRequests: 89,
             pdfsGenerated: 23,
-            totalTransactions: 45
+            totalTransactions: 45,
+            activeWhatsAppSessions: activeSessions
         },
         security: {
             failedLogins: 3,
@@ -141,34 +255,29 @@ async function getSystemStats() {
     };
 }
 
-async function getTenantStats(tenantId) {
-    // This would query tenant's specific database
-    // Simplified for now
-    return {
-        totalPiutang: 15000000,
-        agreementCount: 5,
-        activeAgreements: 3,
-        paidInstallments: 12,
-        pendingInstallments: 8,
-        overdueInstallments: 2
-    };
-}
-
 function generateSystemAlerts(tenants) {
     const alerts = [];
+    const inactiveTenants = tenants.filter(t => t.status === 'inactive');
     
-    // Check for issues
-    const overdueTenants = tenants.filter(t => {
-        // Logic to detect overdue issues
-        return false;
-    });
-    
-    if (overdueTenants.length > 0) {
-        alerts.push({ message: `${overdueTenants.length} tenant memiliki cicilan jatuh tempo` });
+    if (inactiveTenants.length > 0) {
+        alerts.push({ 
+            type: 'warning',
+            message: `${inactiveTenants.length} tenant non-aktif` 
+        });
     }
     
-    // Check disk space, etc.
-    alerts.push({ message: 'Backup otomatis berjalan normal' });
+    const pendingQRTenants = tenants.filter(t => t.status === 'pending_qr');
+    if (pendingQRTenants.length > 0) {
+        alerts.push({ 
+            type: 'info',
+            message: `${pendingQRTenants.length} tenant menunggu scan QR` 
+        });
+    }
+    
+    alerts.push({ 
+        type: 'success',
+        message: 'Backup otomatis berjalan normal' 
+    });
     
     return alerts;
 }

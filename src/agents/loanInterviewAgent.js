@@ -1,16 +1,17 @@
 const loanAgreementService = require('../services/loanAgreementService');
 const userService = require('../services/userService');
 const pdfGenerator = require('../services/pdfGenerator');
+const multiSessionManager = require('../whatsapp/multiSessionManager');
 
 class LoanInterviewAgent {
-  constructor(whatsappClient) {
-    this.client = whatsappClient;
+  constructor(tenantId) {
+    this.tenantId = tenantId;
     this.activeInterviews = new Map(); // phoneNumber -> interviewState
   }
 
   // Start new interview
   async startInterview(lenderPhone, borrowerName, totalAmount, jid) {
-    const lender = await userService.getUserByPhone(lenderPhone);
+    const lender = await userService.getUserByPhone(lenderPhone, this.tenantId);
     
     const interviewState = {
       lenderId: lender.id,
@@ -30,7 +31,7 @@ Jumlah: Rp ${parseInt(totalAmount).toLocaleString('id-ID')}
 
 Silakan masukkan nomor WhatsApp ${borrowerName} (contoh: 08123456789)`;
 
-    await this.client.sendMessage(jid, message);
+    await multiSessionManager.sendMessage(this.tenantId, jid, message);
   }
 
   // Handle interview response
@@ -48,9 +49,9 @@ Silakan masukkan nomor WhatsApp ${borrowerName} (contoh: 08123456789)`;
           interview.step = 1;
           
           const msg = `1️⃣ Sumber pendapatan ${interview.borrowerName}?\n   • GAJI\n   • BISNIS\n   • LAINNYA`;
-          await this.client.sendMessage(jid, msg);
+          await multiSessionManager.sendMessage(this.tenantId, jid, msg);
         } else {
-          await this.client.sendMessage(jid, 'Format nomor salah. Ketik nomor WA (10-13 digit), contoh: 08123456789');
+          await multiSessionManager.sendMessage(this.tenantId, jid, 'Format nomor salah. Ketik nomor WA (10-13 digit), contoh: 08123456789');
         }
         break;
 
@@ -59,12 +60,10 @@ Silakan masukkan nomor WhatsApp ${borrowerName} (contoh: 08123456789)`;
           interview.data.incomeSource = response;
           interview.step = 2;
           
-          const msg = `2️⃣ Tanggal berapa ${interview.borrowerName} menerima ${response === 'GAJI' ? 'gaji' : 'pendapatan'} setiap bulan?
-
-Ketik tanggal (1-31), contoh: 25`;
-          await this.client.sendMessage(jid, msg);
+          const msg = `2️⃣ Tanggal berapa ${interview.borrowerName} menerima ${response === 'GAJI' ? 'gaji' : 'pendapatan'} setiap bulan?\n\nKetik tanggal (1-31), contoh: 25`;
+          await multiSessionManager.sendMessage(this.tenantId, jid, msg);
         } else {
-          await this.client.sendMessage(jid, 'Silakan ketik GAJI, BISNIS, atau LAINNYA');
+          await multiSessionManager.sendMessage(this.tenantId, jid, 'Silakan ketik GAJI, BISNIS, atau LAINNYA');
         }
         break;
 
@@ -74,14 +73,10 @@ Ketik tanggal (1-31), contoh: 25`;
           interview.data.paymentDay = day;
           interview.step = 3;
           
-          const msg = `3️⃣ Berapa perkiraan ${interview.data.incomeSource === 'GAJI' ? 'gaji' : 'pendapatan'} ${interview.borrowerName} per bulan?
-
-Ketik angka tanpa titik/koma, contoh: 5000000
-
-💡 Tips: Boleh ketik "SKIP" jika tidak mau memberitahu`;
-          await this.client.sendMessage(jid, msg);
+          const msg = `3️⃣ Berapa perkiraan ${interview.data.incomeSource === 'GAJI' ? 'gaji' : 'pendapatan'} ${interview.borrowerName} per bulan?\n\nKetik angka tanpa titik/koma, contoh: 5000000\n\n💡 Tips: Boleh ketik "SKIP" jika tidak mau memberitahu`;
+          await multiSessionManager.sendMessage(this.tenantId, jid, msg);
         } else {
-          await this.client.sendMessage(jid, 'Silakan ketik tanggal 1-31, contoh: 25');
+          await multiSessionManager.sendMessage(this.tenantId, jid, 'Silakan ketik tanggal 1-31, contoh: 25');
         }
         break;
 
@@ -95,16 +90,13 @@ Ketik angka tanpa titik/koma, contoh: 5000000
             interview.data.monthlyIncome = income;
             interview.step = 4;
           } else {
-            await this.client.sendMessage(jid, 'Silakan ketik angka saja, contoh: 5000000 atau ketik SKIP');
+            await multiSessionManager.sendMessage(this.tenantId, jid, 'Silakan ketik angka saja, contoh: 5000000 atau ketik SKIP');
             break;
           }
         }
         
-        const msg = `4️⃣ Ada hutang lain yang sedang dicicil?
-Jika ya, berapa total cicilan per bulan?
-
-Ketik 0 jika tidak ada, atau ketik nominalnya (contoh: 1500000)`;
-        await this.client.sendMessage(jid, msg);
+        const msg = `4️⃣ Ada hutang lain yang sedang dicicil?\nJika ya, berapa total cicilan per bulan?\n\nKetik 0 jika tidak ada, atau ketik nominalnya (contoh: 1500000)`;
+        await multiSessionManager.sendMessage(this.tenantId, jid, msg);
         break;
 
       case 4: // Other debts
@@ -134,30 +126,21 @@ Ketik 0 jika tidak ada, atau ketik nominalnya (contoh: 1500000)`;
         
         const summaryMsg = `${affordabilityEmoji} ANALISIS KEMAMPUAN BAYAR
 
-Berdasarkan data:
-• ${interview.data.incomeSource === 'GAJI' ? 'Gaji' : 'Pendapatan'}: Rp ${income.toLocaleString('id-ID')}/bulan
-• Cicilan lain: Rp ${otherDebts.toLocaleString('id-ID')}/bulan  
-• Hutang baru: Rp ${interview.totalAmount.toLocaleString('id-ID')}
+Berdasarkan data:\n• ${interview.data.incomeSource === 'GAJI' ? 'Gaji' : 'Pendapatan'}: Rp ${income.toLocaleString('id-ID')}/bulan\n• Cicilan lain: Rp ${otherDebts.toLocaleString('id-ID')}/bulan  \n• Hutang baru: Rp ${interview.totalAmount.toLocaleString('id-ID')}
 
-💰 REKOMENDASI CICILAN:
-• Nominal cicilan: Rp ${calculation.installmentAmount.toLocaleString('id-ID')}/bulan
-• Jumlah bulan: ${calculation.months} kali
-• Total bayar: Rp ${calculation.totalRepayment.toLocaleString('id-ID')}
-• Tanggal bayar: Setiap tanggal ${interview.data.paymentDay}
-• Tingkat beban: ${affordabilityText}
+💰 REKOMENDASI CICILAN:\n• Nominal cicilan: Rp ${calculation.installmentAmount.toLocaleString('id-ID')}/bulan\n• Jumlah bulan: ${calculation.months} kali\n• Total bayar: Rp ${calculation.totalRepayment.toLocaleString('id-ID')}\n• Tanggal bayar: Setiap tanggal ${interview.data.paymentDay}\n• Tingkat beban: ${affordabilityText}
 
-Apakah setuju dengan cicilan di atas?
-Ketik: SETUJU atau UBAH [nominal]`;
+Apakah setuju dengan cicilan di atas?\nKetik: SETUJU atau UBAH [nominal]`;
         
-        await this.client.sendMessage(jid, summaryMsg);
+        await multiSessionManager.sendMessage(this.tenantId, jid, summaryMsg);
         break;
 
       case 5: // Confirmation
         if (response === 'SETUJU') {
           const draft = loanAgreementService.createDraft({
-            lenderId: interview.lenderId,
+            lenderId: this.tenantId, // Use tenantId as lenderId
             borrowerName: interview.borrowerName,
-            borrowerPhone: interview.data.borrowerPhone, // Use the phone from step 0
+            borrowerPhone: interview.data.borrowerPhone,
             totalAmount: interview.totalAmount,
             incomeSource: interview.data.incomeSource,
             monthlyIncome: interview.data.monthlyIncome,
@@ -188,29 +171,19 @@ Ketik: SETUJU atau UBAH [nominal]`;
           const installments = loanAgreementService.getInstallments(draft.agreementId);
           const pdfResult = await pdfGenerator.generateAgreement(agreement, lender, installments);
           
-          // Send PDF directly to borrower!
+          // Send message to borrower
           const borrowerMsg = `Halo ${interview.borrowerName},
 
 Anda menerima penawaran pinjaman dari ${lender.business_name || lender.phone_number} sebesar Rp ${interview.totalAmount.toLocaleString('id-ID')}.
 
-Detail cicilan:
-• Nominal: Rp ${interview.calculation.installmentAmount.toLocaleString('id-ID')}/bulan
-• Jumlah: ${interview.calculation.months}x cicilan
-• Tanggal: Setiap tanggal ${interview.data.paymentDay}
+Detail cicilan:\n• Nominal: Rp ${interview.calculation.installmentAmount.toLocaleString('id-ID')}/bulan\n• Jumlah: ${interview.calculation.months}x cicilan\n• Tanggal: Setiap tanggal ${interview.data.paymentDay}
 
-Silakan baca surat perjanjian terlampir dan balas:
-• SETUJU — untuk menerima
-• TOLAK — untuk menolak`;
+Silakan baca surat perjanjian terlampir dan balas:\n• SETUJU — untuk menerima\n• TOLAK — untuk menolak`;
 
-          await this.client.sendMessage(interview.data.borrowerPhone + '@s.whatsapp.net', borrowerMsg);
+          await multiSessionManager.sendMessage(this.tenantId, interview.data.borrowerPhone + '@s.whatsapp.net', borrowerMsg);
           
-          // Send PDF to borrower
-          await this.client.sendMessage(interview.data.borrowerPhone + '@s.whatsapp.net', 
-            { document: { url: pdfResult.filepath }, fileName: `Perjanjian-${interview.borrowerName}.pdf`, mimetype: 'application/pdf' }
-          );
-          
-          // Notify Dani
-          await this.client.sendMessage(jid, 
+          // Notify lender
+          await multiSessionManager.sendMessage(this.tenantId, jid, 
             `✅ Perjanjian dibuat dan langsung dikirim ke ${interview.borrowerName} (${interview.data.borrowerPhone})\n\nID: #${draft.agreementId}\nMenunggu persetujuan...`
           );
           
@@ -223,21 +196,19 @@ Silakan baca surat perjanjian terlampir dan balas:
             
             const newMsg = `🔄 CICILAN DIUBAH
 
-• Cicilan: Rp ${newAmount.toLocaleString('id-ID')}/bulan
-• Jumlah bulan: ${months} kali
-• Total: Rp ${interview.totalAmount.toLocaleString('id-ID')}
+• Cicilan: Rp ${newAmount.toLocaleString('id-ID')}/bulan\n• Jumlah bulan: ${months} kali\n• Total: Rp ${interview.totalAmount.toLocaleString('id-ID')}
 
 Ketik SETUJU untuk melanjutkan atau UBAH [nominal] untuk mengubah lagi.`;
             
             interview.calculation.installmentAmount = newAmount;
             interview.calculation.months = months;
             
-            await this.client.sendMessage(jid, newMsg);
+            await multiSessionManager.sendMessage(this.tenantId, jid, newMsg);
           } else {
-            await this.client.sendMessage(jid, 'Format salah. Ketik UBAH [nominal], contoh: UBAH 1000000');
+            await multiSessionManager.sendMessage(this.tenantId, jid, 'Format salah. Ketik UBAH [nominal], contoh: UBAH 1000000');
           }
         } else {
-          await this.client.sendMessage(jid, 'Ketik SETUJU untuk menyetujui atau UBAH [nominal] untuk mengubah');
+          await multiSessionManager.sendMessage(this.tenantId, jid, 'Ketik SETUJU untuk menyetujui atau UBAH [nominal] untuk mengubah');
         }
         break;
 

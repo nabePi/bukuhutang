@@ -3,15 +3,18 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const app = require('./api/server');
+const multiSessionManager = require('./whatsapp/multiSessionManager');
+const multiTenantHandler = require('./whatsapp/multiTenantHandler');
+const tenantRegistrationService = require('./services/tenantRegistrationService');
 
 const PORT = process.env.PORT || 3000;
 const MOCK_MODE = process.env.MOCK_MODE === 'true';
 
 async function main() {
-  console.log('🚀 Starting BukuHutang with OpenClaw Integration...');
+  console.log('🚀 Starting BukuHutang Multi-Tenant SaaS...');
   
   // Ensure directories exist
-  const dirs = ['data', 'data/agreements'];
+  const dirs = ['data', 'data/agreements', 'auth_sessions'];
   dirs.forEach(dir => {
     const dirPath = path.join(__dirname, '..', dir);
     if (!fs.existsSync(dirPath)) {
@@ -19,18 +22,29 @@ async function main() {
     }
   });
 
+  // Initialize multi-tenant WhatsApp sessions for active tenants
+  const tenants = tenantRegistrationService.listAllTenants();
+  console.log(`📋 Found ${tenants.length} tenants`);
+
   if (!MOCK_MODE) {
-    // Only load WhatsApp if not in mock mode
-    const whatsappClient = require('./whatsapp/client');
-    const MessageHandler = require('./whatsapp/handler');
+    // Set up message handler for all tenants
+    multiSessionManager.setMessageHandler('global', (tenantId, msg) => {
+      return multiTenantHandler.handle(tenantId, msg);
+    });
     
-    // Connect to WhatsApp
-    await whatsappClient.connect();
-    global.whatsappClient = whatsappClient;
+    // Reconnect existing active tenants
+    for (const tenant of tenants) {
+      if (tenant.status === 'active') {
+        try {
+          console.log(`🔗 Connecting WhatsApp for tenant ${tenant.id} (${tenant.name})...`);
+          await multiSessionManager.createSession(tenant.id, tenant.phone_number);
+        } catch (error) {
+          console.error(`Failed to connect tenant ${tenant.id}:`, error.message);
+        }
+      }
+    }
     
-    // Setup message handler for incoming WA
-    const handler = new MessageHandler(whatsappClient);
-    whatsappClient.onMessage((msg) => handler.handle(msg));
+    console.log('✅ Multi-tenant WhatsApp sessions initialized');
   } else {
     console.log('📍 MOCK MODE: WhatsApp connection skipped');
     // Create a mock WhatsApp client for API testing
@@ -45,8 +59,9 @@ async function main() {
   // Start API server
   app.listen(PORT, () => {
     console.log(`📡 API Server running on port ${PORT}`);
+    console.log(`🔗 Admin Dashboard: http://localhost:${PORT}/admin`);
     console.log(`🔗 OpenClaw webhook: http://localhost:${PORT}/api/openclaw/webhook`);
-    console.log('✅ BukuHutang ready for OpenClaw orchestration!');
+    console.log('✅ BukuHutang Multi-Tenant SaaS ready!');
   });
 }
 

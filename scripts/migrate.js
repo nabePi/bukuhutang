@@ -2,134 +2,95 @@ const { getConnection } = require('../src/db/connection');
 
 const db = getConnection();
 
-// Users table
+// Check if tenants table already exists (multi-tenant already applied)
+const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tenants'").get();
+
+if (tableExists) {
+  console.log('Multi-tenant migration already applied!');
+  process.exit(0);
+}
+
+console.log('Applying multi-tenant migration...');
+
+// Add tenant_id to existing tables
+try {
+  db.exec(`
+    ALTER TABLE users ADD COLUMN tenant_id INTEGER DEFAULT 1;
+    ALTER TABLE debts ADD COLUMN tenant_id INTEGER DEFAULT 1;
+    ALTER TABLE loan_agreements ADD COLUMN lender_id INTEGER DEFAULT 1;
+    ALTER TABLE installment_payments ADD COLUMN tenant_id INTEGER DEFAULT 1;
+    ALTER TABLE credits ADD COLUMN tenant_id INTEGER DEFAULT 1;
+    ALTER TABLE reminders ADD COLUMN tenant_id INTEGER DEFAULT 1;
+  `);
+  console.log('✅ Added tenant_id columns to existing tables');
+} catch (error) {
+  console.log('Note: Some columns may already exist:', error.message);
+}
+
+// Create indexes for tenant filtering
 db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
+  CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+  CREATE INDEX IF NOT EXISTS idx_debts_tenant ON debts(tenant_id);
+  CREATE INDEX IF NOT EXISTS idx_agreements_lender ON loan_agreements(lender_id);
+  CREATE INDEX IF NOT EXISTS idx_installments_tenant ON installment_payments(tenant_id);
+  CREATE INDEX IF NOT EXISTS idx_credits_tenant ON credits(tenant_id);
+  CREATE INDEX IF NOT EXISTS idx_reminders_tenant ON reminders(tenant_id);
+`);
+console.log('✅ Created tenant indexes');
+
+// Create tenants table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tenants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone_number TEXT UNIQUE NOT NULL,
-    business_name TEXT,
-    user_mode TEXT DEFAULT 'personal',
+    name TEXT NOT NULL,
+    email TEXT,
+    whatsapp_session TEXT,
+    status TEXT DEFAULT 'active',
+    plan TEXT DEFAULT 'free',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    last_active DATETIME,
+    ai_credits INTEGER DEFAULT 1000,
+    max_debts INTEGER DEFAULT 100,
+    max_agreements INTEGER DEFAULT 10
   );
 `);
+console.log('✅ Created tenants table');
 
-// Debts (piutang - orang utang ke user)
+// Create tenant_settings table
 db.exec(`
-  CREATE TABLE IF NOT EXISTS debts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    debtor_name TEXT NOT NULL,
-    debtor_phone TEXT,
-    amount INTEGER NOT NULL,
-    description TEXT,
-    due_date DATE NOT NULL,
-    status TEXT DEFAULT 'pending',
-    reminder_sent BOOLEAN DEFAULT 0,
-    reminder_time DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    paid_at DATETIME,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+  CREATE TABLE IF NOT EXISTS tenant_settings (
+    tenant_id INTEGER PRIMARY KEY,
+    reminder_template TEXT DEFAULT 'default',
+    auto_reminder BOOLEAN DEFAULT 1,
+    language TEXT DEFAULT 'id',
+    timezone TEXT DEFAULT 'Asia/Jakarta',
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id)
   );
 `);
+console.log('✅ Created tenant_settings table');
 
-// Credits (hutang - user utang ke orang)
-db.exec(`
-  CREATE TABLE IF NOT EXISTS credits (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    creditor_name TEXT NOT NULL,
-    amount INTEGER NOT NULL,
-    description TEXT,
-    due_date DATE NOT NULL,
-    status TEXT DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    paid_at DATETIME,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
+// Insert default tenant for existing data (migration)
+const existingUser = db.prepare('SELECT phone_number FROM users LIMIT 1').get();
+if (existingUser) {
+  const result = db.prepare(`
+    INSERT INTO tenants (phone_number, name, status, plan)
+    VALUES (?, 'Default Tenant', 'active', 'pro')
+  `).run(existingUser.phone_number);
+  
+  // Create default settings for the tenant
+  db.prepare('INSERT INTO tenant_settings (tenant_id) VALUES (?)').run(result.lastInsertRowid);
+  
+  console.log(`✅ Created default tenant with phone: ${existingUser.phone_number}`);
+} else {
+  // Create a placeholder default tenant
+  const result = db.prepare(`
+    INSERT INTO tenants (phone_number, name, status, plan)
+    VALUES ('0000000000', 'Default Tenant', 'active', 'pro')
+  `).run();
+  
+  db.prepare('INSERT INTO tenant_settings (tenant_id) VALUES (?)').run(result.lastInsertRowid);
+  console.log('✅ Created placeholder default tenant');
+}
 
-// Reminders log
-db.exec(`
-  CREATE TABLE IF NOT EXISTS reminders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    debt_id INTEGER,
-    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT,
-    response TEXT
-  );
-`);
-
-// Create indexes
-db.exec(`CREATE INDEX IF NOT EXISTS idx_debts_user ON debts(user_id);`);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_debts_due ON debts(due_date);`);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_debts_reminder ON debts(reminder_time);`);
-
-// Loan agreements table
-db.exec(`
-  CREATE TABLE IF NOT EXISTS loan_agreements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lender_id INTEGER NOT NULL,
-    borrower_name TEXT NOT NULL,
-    borrower_phone TEXT NOT NULL,
-    borrower_id_number TEXT,
-    borrower_address TEXT,
-    total_amount INTEGER NOT NULL,
-    interest_rate REAL DEFAULT 0,
-    installment_amount INTEGER,
-    installment_count INTEGER,
-    first_payment_date DATE,
-    payment_day INTEGER,
-    income_source TEXT,
-    monthly_income INTEGER,
-    other_debts INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'draft',
-    agreement_pdf_path TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    signed_at DATETIME,
-    FOREIGN KEY (lender_id) REFERENCES users(id)
-  );
-`);
-
-// Installment payments table
-db.exec(`
-  CREATE TABLE IF NOT EXISTS installment_payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    agreement_id INTEGER NOT NULL,
-    installment_number INTEGER,
-    due_date DATE NOT NULL,
-    amount INTEGER NOT NULL,
-    paid_amount INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'pending',
-    paid_at DATETIME,
-    reminder_sent BOOLEAN DEFAULT 0,
-    FOREIGN KEY (agreement_id) REFERENCES loan_agreements(id)
-  );
-`);
-
-// Loan agreement indexes
-db.exec(`CREATE INDEX IF NOT EXISTS idx_agreements_lender ON loan_agreements(lender_id);`);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_agreements_status ON loan_agreements(status);`);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_installments_agreement ON installment_payments(agreement_id);`);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_installments_due ON installment_payments(due_date);`);
-
-// Policy table for OpenClaw config
-db.exec(`
-  CREATE TABLE IF NOT EXISTS ops_policy (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
-
-// Default policies
-db.exec(`
-  INSERT OR IGNORE INTO ops_policy (key, value) VALUES
-  ('reminder_check_interval', '5'),
-  ('installment_check_interval', '1'),
-  ('max_retry_attempts', '3'),
-  ('whatsapp_rate_limit', '30'),
-  ('batch_size', '50');
-`);
-
-console.log('Migration completed successfully!');
+console.log('✅ Multi-tenant migration completed!');

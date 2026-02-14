@@ -43,7 +43,7 @@ class LoanAgreementService {
     };
   }
 
-  // Create draft agreement
+  // Create draft agreement (lenderId is now tenantId)
   createDraft({ lenderId, borrowerName, borrowerPhone, totalAmount, incomeSource, monthlyIncome, otherDebts }) {
     const calculation = this.calculateInstallment(monthlyIncome || totalAmount, otherDebts || 0, totalAmount);
     
@@ -96,11 +96,11 @@ class LoanAgreementService {
     
     for (let i = 1; i <= agreement.installment_count; i++) {
       const stmt = this.db.prepare(`
-        INSERT INTO installment_payments (agreement_id, installment_number, due_date, amount)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO installment_payments (agreement_id, installment_number, due_date, amount, tenant_id)
+        VALUES (?, ?, ?, ?, ?)
       `);
       
-      stmt.run(agreementId, i, currentDate.toISOString().split('T')[0], agreement.installment_amount);
+      stmt.run(agreementId, i, currentDate.toISOString().split('T')[0], agreement.installment_amount, agreement.lender_id);
       
       // Move to next month
       currentDate.setMonth(currentDate.getMonth() + 1);
@@ -145,26 +145,22 @@ class LoanAgreementService {
     return stmt.get(id);
   }
 
-  // Get all agreements for user
-  getUserAgreements(userId) {
+  // Get all agreements for a tenant (lenderId is now tenantId)
+  getUserAgreements(tenantId) {
     const stmt = this.db.prepare(`
       SELECT * FROM loan_agreements 
       WHERE lender_id = ? 
       ORDER BY created_at DESC
     `);
-    return stmt.all(userId);
+    return stmt.all(tenantId);
   }
 
-  getActiveCount(userId = null) {
-    if (userId) {
-      const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE lender_id = ? AND status = 'active'`);
-      return stmt.get(userId).count;
-    }
-    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE status = 'active'`);
-    return stmt.get().count;
+  getActiveCount(tenantId) {
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE lender_id = ? AND status = 'active'`);
+    return stmt.get(tenantId).count;
   }
 
-  getInstallmentStats(userId) {
+  getInstallmentStats(tenantId) {
     const paidStmt = this.db.prepare(`
       SELECT COUNT(*) as count 
       FROM installment_payments ip
@@ -185,20 +181,38 @@ class LoanAgreementService {
     `);
     
     return {
-      paid: paidStmt.get(userId).count,
-      pending: pendingStmt.get(userId).count,
-      overdue: overdueStmt.get(userId).count
+      paid: paidStmt.get(tenantId).count,
+      pending: pendingStmt.get(tenantId).count,
+      overdue: overdueStmt.get(tenantId).count
     };
   }
 
-  getPendingInstallmentCount() {
-    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM installment_payments WHERE status = 'pending'`);
-    return stmt.get().count;
+  getPendingInstallmentCount(tenantId) {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM installment_payments ip
+      JOIN loan_agreements la ON ip.agreement_id = la.id
+      WHERE la.lender_id = ? AND ip.status = 'pending'
+    `);
+    return stmt.get(tenantId).count;
   }
 
-  getUpcomingInstallments(limit = 50) {
+  getUpcomingInstallments(tenantId, limit = 50) {
     const stmt = this.db.prepare(`
       SELECT i.*, a.borrower_phone, a.borrower_name
+      FROM installment_payments i
+      JOIN loan_agreements a ON i.agreement_id = a.id
+      WHERE a.lender_id = ? AND i.due_date <= date('now', '+7 days')
+      AND i.status = 'pending'
+      AND i.reminder_sent = 0
+      LIMIT ?
+    `);
+    return stmt.all(tenantId, limit);
+  }
+  
+  // Get all upcoming installments across tenants (for cron)
+  getAllUpcomingInstallments(limit = 100) {
+    const stmt = this.db.prepare(`
+      SELECT i.*, a.borrower_phone, a.borrower_name, a.lender_id as tenant_id
       FROM installment_payments i
       JOIN loan_agreements a ON i.agreement_id = a.id
       WHERE i.due_date <= date('now', '+7 days')
@@ -214,7 +228,17 @@ class LoanAgreementService {
     stmt.run(id);
   }
 
-  findPendingByBorrowerPhone(phoneNumber) {
+  findPendingByBorrowerPhone(tenantId, phoneNumber) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM loan_agreements 
+      WHERE lender_id = ? AND borrower_phone = ? AND status = 'draft'
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    return stmt.get(tenantId, phoneNumber);
+  }
+  
+  // Find pending by borrower phone across all tenants (for borrower-initiated messages)
+  findPendingByBorrowerPhoneGlobal(phoneNumber) {
     const stmt = this.db.prepare(`
       SELECT * FROM loan_agreements 
       WHERE borrower_phone = ? AND status = 'draft'
@@ -300,14 +324,27 @@ class LoanAgreementService {
     return stmt.get(agreementId, installmentNumber);
   }
 
-  // Find agreement by borrower name and lender
-  findAgreementByBorrower(lenderId, borrowerName) {
+  // Find agreement by borrower name and lender (tenant)
+  findAgreementByBorrower(tenantId, borrowerName) {
     const stmt = this.db.prepare(`
       SELECT * FROM loan_agreements 
       WHERE lender_id = ? AND borrower_name = ? AND status IN ('active', 'draft')
       ORDER BY created_at DESC LIMIT 1
     `);
-    return stmt.get(lenderId, borrowerName);
+    return stmt.get(tenantId, borrowerName);
+  }
+  
+  // Check agreement limit for tenant
+  checkAgreementLimit(tenantId, maxAgreements) {
+    const currentCount = this.db.prepare(`
+      SELECT COUNT(*) as count FROM loan_agreements WHERE lender_id = ?
+    `).get(tenantId).count;
+    
+    return {
+      current: currentCount,
+      max: maxAgreements,
+      exceeded: currentCount >= maxAgreements
+    };
   }
 }
 
