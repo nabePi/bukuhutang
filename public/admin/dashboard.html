@@ -282,7 +282,7 @@
                     <div id="qrCodeContainer" style="display: none;">
                         <img id="qrCodeImage" src="" alt="QR Code">
                         <p style="color: #0f172a; text-align: center; margin-top: 10px; font-size: 0.9em;">Scan dengan WhatsApp</p>
-                        <p id="qrTimeout" style="color: #ef4444; text-align: center; font-size: 0.85em; margin-top: 5px;">⏱️ QR berlaku 2 menit</p>
+                        <p id="qrCountdown" style="color: #ef4444; text-align: center; font-size: 1.1em; font-weight: bold; margin-top: 5px;">⏱️ 02:00</p>
                     </div>
                     <div id="waConnected" style="display: none; text-align: center; padding: 30px;">
                         <div style="font-size: 4em;">✅</div>
@@ -468,6 +468,54 @@
         
         // WhatsApp Functions
         let qrTimeoutId = null;
+        let countdownInterval = null;
+        
+        function startCountdown(duration) {
+            let remaining = duration;
+            const countdownEl = document.getElementById('qrCountdown');
+            
+            // Clear existing interval
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            function updateDisplay() {
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                const display = `⏱️ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                countdownEl.textContent = display;
+                
+                // Change color when low on time
+                if (remaining <= 30) {
+                    countdownEl.style.color = '#dc2626'; // Darker red
+                } else if (remaining <= 60) {
+                    countdownEl.style.color = '#f59e0b'; // Orange
+                } else {
+                    countdownEl.style.color = '#ef4444'; // Red
+                }
+            }
+            
+            updateDisplay();
+            
+            countdownInterval = setInterval(() => {
+                remaining--;
+                updateDisplay();
+                
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+            }, 1000);
+            
+            return countdownInterval;
+        }
+        
+        function stopCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
         
         async function refreshWA() {
             try {
@@ -488,11 +536,12 @@
                     document.getElementById('waDisconnected').style.display = 'none';
                     document.getElementById('qrLoading').style.display = 'none';
                     
-                    // Clear any pending QR timeout
+                    // Clear any pending QR timeout and countdown
                     if (qrTimeoutId) {
                         clearTimeout(qrTimeoutId);
                         qrTimeoutId = null;
                     }
+                    stopCountdown();
                     
                 } else {
                     // Disconnected state - show generate button
@@ -536,12 +585,12 @@
                     document.getElementById('qrCodeContainer').style.display = 'block';
                     document.getElementById('waStatusText').innerHTML = '<span style="color: #f59e0b;">🟡 Scan QR Code</span>';
                     
-                    // Set timeout 2 menit
-                    document.getElementById('qrTimeout').textContent = '⏱️ QR berlaku 2 menit';
-                    document.getElementById('qrTimeout').style.color = '#ef4444';
+                    // Start countdown timer (2 minutes = 120 seconds)
+                    startCountdown(120);
                     
                     qrTimeoutId = setTimeout(() => {
                         // QR expired
+                        stopCountdown();
                         document.getElementById('qrCodeContainer').style.display = 'none';
                         document.getElementById('waDisconnected').style.display = 'block';
                         document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 QR Expired</span>';
