@@ -272,19 +272,26 @@
                     <p><strong>Status:</strong> <span id="waStatusText" class="loading">Loading...</span></p>
                     <p id="waPhoneDisplay" style="display: none;"><strong>Nomor:</strong> <span id="waPhoneNumber">-</span></p>
                     <div style="margin-top: 15px;">
-                        <button class="btn btn-primary" onclick="refreshWA()">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="refreshWA()">🔄 Cek Status</button>
+                        <button class="btn btn-success" id="btnGenerateQR" style="display: none;" onclick="generateQRCode()">📱 Generate QR Code</button>
                         <button class="btn btn-danger" id="btnLogout" style="display: none;" onclick="logoutWA()">🔴 Logout</button>
                     </div>
                 </div>
                 <div>
-                    <div id="qrLoading" style="padding: 30px;">⏳ Memuat QR Code...</div>
+                    <div id="qrLoading" style="padding: 30px; display: none;">⏳ Memuat QR Code...</div>
                     <div id="qrCodeContainer" style="display: none;">
                         <img id="qrCodeImage" src="" alt="QR Code">
                         <p style="color: #0f172a; text-align: center; margin-top: 10px; font-size: 0.9em;">Scan dengan WhatsApp</p>
+                        <p id="qrTimeout" style="color: #ef4444; text-align: center; font-size: 0.85em; margin-top: 5px;">⏱️ QR berlaku 2 menit</p>
                     </div>
                     <div id="waConnected" style="display: none; text-align: center; padding: 30px;">
                         <div style="font-size: 4em;">✅</div>
                         <p style="color: #10b981; font-weight: bold;">Connected</p>
+                    </div>
+                    <div id="waDisconnected" style="text-align: center; padding: 30px;">
+                        <div style="font-size: 3em;">📵</div>
+                        <p style="color: #94a3b8; margin-top: 10px;">WhatsApp belum terhubung</p>
+                        <p style="color: #64748b; font-size: 0.85em;">Klik "Generate QR Code" untuk connect</p>
                     </div>
                 </div>
             </div>
@@ -460,11 +467,57 @@
         }
         
         // WhatsApp Functions
+        let qrTimeoutId = null;
+        
         async function refreshWA() {
             try {
+                document.getElementById('waStatusText').innerHTML = '<span class="loading">Mengecek...</span>';
+                
+                const res = await fetch('/api/public/whatsapp/status');
+                const data = await res.json();
+                
+                if (data.connected) {
+                    // Connected state
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #10b981;">🟢 Connected</span>';
+                    document.getElementById('waConnected').style.display = 'block';
+                    document.getElementById('waPhoneDisplay').style.display = 'block';
+                    document.getElementById('waPhoneNumber').textContent = data.phoneNumber || '-';
+                    document.getElementById('btnLogout').style.display = 'inline-block';
+                    document.getElementById('btnGenerateQR').style.display = 'none';
+                    document.getElementById('qrCodeContainer').style.display = 'none';
+                    document.getElementById('waDisconnected').style.display = 'none';
+                    document.getElementById('qrLoading').style.display = 'none';
+                    
+                    // Clear any pending QR timeout
+                    if (qrTimeoutId) {
+                        clearTimeout(qrTimeoutId);
+                        qrTimeoutId = null;
+                    }
+                    
+                } else {
+                    // Disconnected state - show generate button
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 Disconnected</span>';
+                    document.getElementById('waConnected').style.display = 'none';
+                    document.getElementById('waPhoneDisplay').style.display = 'none';
+                    document.getElementById('waPhoneNumber').textContent = '-';
+                    document.getElementById('btnLogout').style.display = 'none';
+                    document.getElementById('btnGenerateQR').style.display = 'inline-block';
+                    document.getElementById('qrCodeContainer').style.display = 'none';
+                    document.getElementById('waDisconnected').style.display = 'block';
+                    document.getElementById('qrLoading').style.display = 'none';
+                }
+            } catch (e) {
+                document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 Error</span>';
+                console.error('Refresh WA error:', e);
+            }
+        }
+        
+        async function generateQRCode() {
+            try {
+                document.getElementById('btnGenerateQR').disabled = true;
+                document.getElementById('btnGenerateQR').textContent = '⏳ Generating...';
                 document.getElementById('qrLoading').style.display = 'block';
-                document.getElementById('qrCodeContainer').style.display = 'none';
-                document.getElementById('waConnected').style.display = 'none';
+                document.getElementById('waDisconnected').style.display = 'none';
                 
                 const res = await fetch('/api/public/whatsapp/status');
                 const data = await res.json();
@@ -472,25 +525,46 @@
                 document.getElementById('qrLoading').style.display = 'none';
                 
                 if (data.connected) {
-                    document.getElementById('waStatusText').innerHTML = '<span style="color: #10b981;">🟢 Connected</span>';
-                    document.getElementById('waConnected').style.display = 'block';
-                    document.getElementById('waPhoneDisplay').style.display = 'block';
-                    document.getElementById('waPhoneNumber').textContent = data.phoneNumber || '-';
-                    document.getElementById('btnLogout').style.display = 'inline-block';
-                } else if (data.qrCode) {
-                    document.getElementById('waStatusText').innerHTML = '<span style="color: #f59e0b;">🟡 Scan QR Code</span>';
+                    // Sudah connected, refresh status saja
+                    refreshWA();
+                    return;
+                }
+                
+                if (data.qrCode) {
+                    // Show QR code
                     document.getElementById('qrCodeImage').src = data.qrCode;
                     document.getElementById('qrCodeContainer').style.display = 'block';
-                    document.getElementById('waPhoneDisplay').style.display = 'none';
-                    document.getElementById('btnLogout').style.display = 'none';
-                    setTimeout(refreshWA, 5000);
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #f59e0b;">🟡 Scan QR Code</span>';
+                    
+                    // Set timeout 2 menit
+                    document.getElementById('qrTimeout').textContent = '⏱️ QR berlaku 2 menit';
+                    document.getElementById('qrTimeout').style.color = '#ef4444';
+                    
+                    qrTimeoutId = setTimeout(() => {
+                        // QR expired
+                        document.getElementById('qrCodeContainer').style.display = 'none';
+                        document.getElementById('waDisconnected').style.display = 'block';
+                        document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 QR Expired</span>';
+                        document.getElementById('btnGenerateQR').disabled = false;
+                        document.getElementById('btnGenerateQR').textContent = '📱 Generate QR Code';
+                        alert('QR Code expired. Silakan generate ulang.');
+                    }, 120000); // 2 menit
+                    
                 } else {
-                    document.getElementById('waStatusText').innerHTML = '<span style="color: #f97316;">🟠 Connecting...</span>';
-                    document.getElementById('qrLoading').style.display = 'block';
-                    setTimeout(refreshWA, 3000);
+                    // QR belum ready, coba lagi
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #f97316;">🟠 QR belum ready, coba lagi...</span>';
+                    document.getElementById('waDisconnected').style.display = 'block';
+                    document.getElementById('btnGenerateQR').disabled = false;
+                    document.getElementById('btnGenerateQR').textContent = '📱 Generate QR Code';
                 }
+                
             } catch (e) {
+                document.getElementById('qrLoading').style.display = 'none';
+                document.getElementById('waDisconnected').style.display = 'block';
                 document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 Error</span>';
+                document.getElementById('btnGenerateQR').disabled = false;
+                document.getElementById('btnGenerateQR').textContent = '📱 Generate QR Code';
+                console.error('Generate QR error:', e);
             }
         }
         
@@ -778,7 +852,7 @@
         
         // Init
         window.onload = function() {
-            refreshWA();
+            refreshWA();  // Cek status sekali saja
             loadStats();
             loadBorrowers();
         };
