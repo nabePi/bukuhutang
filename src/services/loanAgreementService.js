@@ -44,19 +44,20 @@ class LoanAgreementService {
   }
 
   // Create draft agreement (lenderId is now tenantId)
-  createDraft({ lenderId, borrowerName, borrowerPhone, totalAmount, incomeSource, monthlyIncome, otherDebts }) {
+  createDraft({ lenderId, borrowerName, borrowerPhone, totalAmount, incomeSource, monthlyIncome, otherDebts, actualLenderName, actualLenderPhone }) {
     const calculation = this.calculateInstallment(monthlyIncome || totalAmount, otherDebts || 0, totalAmount);
     
     const stmt = this.db.prepare(`
       INSERT INTO loan_agreements 
-      (lender_id, borrower_name, borrower_phone, total_amount, income_source, monthly_income, other_debts, installment_amount, installment_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (lender_id, borrower_name, borrower_phone, total_amount, income_source, monthly_income, other_debts, installment_amount, installment_count, actual_lender_name, actual_lender_phone)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const result = stmt.run(
       lenderId, borrowerName, borrowerPhone, totalAmount,
       incomeSource, monthlyIncome, otherDebts || 0,
-      calculation.installmentAmount, calculation.months
+      calculation.installmentAmount, calculation.months,
+      actualLenderName || null, actualLenderPhone || null
     );
     
     return {
@@ -158,6 +159,35 @@ class LoanAgreementService {
   getActiveCount(tenantId) {
     const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE lender_id = ? AND status = 'active'`);
     return stmt.get(tenantId).count;
+  }
+
+  // Get all active agreements count (Single Admin Mode - no tenant filter)
+  getAllActiveCount() {
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM loan_agreements WHERE status = 'active'`);
+    return stmt.get().count;
+  }
+
+  // Get all pending installments count (Single Admin Mode)
+  getAllPendingInstallmentCount() {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM installment_payments
+      WHERE status = 'pending'
+    `);
+    return stmt.get().count;
+  }
+
+  // Get all upcoming installments (Single Admin Mode)
+  getAllUpcomingInstallments(limit = 100) {
+    const stmt = this.db.prepare(`
+      SELECT i.*, a.borrower_phone, a.borrower_name, a.lender_id as tenant_id
+      FROM installment_payments i
+      JOIN loan_agreements a ON i.agreement_id = a.id
+      WHERE i.due_date <= date('now', '+7 days')
+      AND i.status = 'pending'
+      AND i.reminder_sent = 0
+      LIMIT ?
+    `);
+    return stmt.all(limit);
   }
 
   getInstallmentStats(tenantId) {
@@ -345,6 +375,28 @@ class LoanAgreementService {
       max: maxAgreements,
       exceeded: currentCount >= maxAgreements
     };
+  }
+
+  // Get installments due for reminder within days window (for OpenClaw cron)
+  getInstallmentsDueForReminder(daysBeforeDue, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        i.*, 
+        a.borrower_phone, 
+        a.borrower_name,
+        a.lender_id as tenant_id,
+        a.installment_count as total_installments,
+        julianday(i.due_date) - julianday('now') as days_until_due
+      FROM installment_payments i
+      JOIN loan_agreements a ON i.agreement_id = a.id
+      WHERE i.status = 'pending'
+      AND i.reminder_sent = 0
+      AND julianday(i.due_date) - julianday('now') <= ?
+      AND julianday(i.due_date) - julianday('now') >= -30
+      ORDER BY i.due_date ASC
+      LIMIT ?
+    `);
+    return stmt.all(daysBeforeDue, limit);
   }
 }
 

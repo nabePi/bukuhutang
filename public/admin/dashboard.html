@@ -3,160 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BukuHutang Super Admin Dashboard</title>
+    <title>BukuHutang Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
-        }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         
         header {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             color: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3);
+            margin-bottom: 25px;
         }
-        
-        header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        header p {
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
+        header h1 { font-size: 2em; margin-bottom: 5px; }
+        header p { opacity: 0.9; }
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         
         .stat-card {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            padding: 25px;
-            border-radius: 15px;
-            border: 1px solid #475569;
-            transition: all 0.3s;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: #3b82f6;
+        .stat-card .icon { font-size: 2em; margin-bottom: 10px; }
+        .stat-card h3 { 
+            color: #94a3b8; 
+            font-size: 0.85em; 
+            text-transform: uppercase; 
+            margin-bottom: 8px;
+            line-height: 1.2;
         }
-        
-        .stat-card .icon {
-            font-size: 2.5em;
-            margin-bottom: 15px;
-        }
-        
-        .stat-card h3 {
-            color: #94a3b8;
-            font-size: 0.85em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-        
-        .stat-card .value {
-            font-size: 2.2em;
-            font-weight: bold;
+        .stat-card .value { 
+            font-size: 1.8em; 
+            font-weight: bold; 
             color: #f8fafc;
-        }
-        
-        .stat-card .sub-value {
-            font-size: 0.9em;
-            color: #64748b;
-            margin-top: 5px;
+            word-break: break-word;
         }
         
         .section {
             background: #1e293b;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
             border: 1px solid #334155;
         }
-        
         .section h2 {
             color: #f8fafc;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 2px solid #3b82f6;
-            padding-bottom: 10px;
-        }
-        
-        .section h3 {
-            color: #94a3b8;
             margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #0f172a;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        th, td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid #334155;
-        }
-        
-        th {
-            background: #334155;
-            font-weight: 600;
-            color: #f8fafc;
-            text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 0.5px;
-        }
-        
-        tr:hover {
-            background: #1e293b;
-        }
-        
-        .status {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-        
-        .status.active {
-            background: #065f46;
-            color: #6ee7b7;
-        }
-        
-        .status.inactive {
-            background: #7f1d1d;
-            color: #fca5a5;
-        }
-        
-        .status.pending {
-            background: #92400e;
-            color: #fcd34d;
+            font-size: 1.3em;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 8px;
         }
         
         .btn {
@@ -164,498 +72,716 @@
             border-radius: 8px;
             border: none;
             cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 10px;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #0f172a;
+            border-radius: 8px;
+            overflow: hidden;
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+            white-space: normal;
+            word-break: break-word;
+        }
+        th { 
+            background: #334155; 
+            font-weight: 600; 
             font-size: 0.85em;
-            font-weight: 500;
-            transition: all 0.3s;
+            white-space: nowrap;
         }
+        tr:hover { background: #1e293b; }
         
-        .btn-view {
-            background: #3b82f6;
-            color: white;
+        .status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap;
         }
+        .status.active { background: #065f46; color: #6ee7b7; }
+        .status.pending { background: #92400e; color: #fcd34d; }
+        .status.overdue { background: #7f1d1d; color: #fca5a5; }
+        .status.paid { background: #1e3a5f; color: #93c5fd; }
         
-        .btn-view:hover {
-            background: #2563eb;
-        }
-        
-        .btn-disable {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .btn-disable:hover {
-            background: #dc2626;
-        }
-        
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .chart-card {
-            background: #0f172a;
-            padding: 25px;
-            border-radius: 15px;
-            border: 1px solid #334155;
-        }
-        
-        .chart-card h3 {
-            margin-bottom: 20px;
-            color: #f8fafc;
-        }
-        
-        .alert {
-            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
-            border: 1px solid #ef4444;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .alert h4 {
-            color: #fca5a5;
-            margin-bottom: 10px;
-        }
-        
-        .alert-item {
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 8px;
-        }
-        
-        .refresh-btn {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
-        
-        .refresh-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-        }
-        
-        .search-box {
-            background: #0f172a;
-            border: 1px solid #334155;
-            padding: 12px 20px;
-            border-radius: 10px;
-            color: #e2e8f0;
-            width: 300px;
-            margin-bottom: 20px;
-        }
-        
-        .search-box:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        
-        @media (max-width: 1200px) {
-            .grid-3 {
-                grid-template-columns: 1fr;
+        @media (max-width: 768px) {
+            .status {
+                font-size: 0.7em;
+                padding: 3px 8px;
             }
+        }
+        
+        #qrCodeContainer {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 15px;
+        }
+        #qrCodeImage { width: 200px; height: 200px; }
+        
+        .loading { color: #94a3b8; font-style: italic; }
+        .empty { color: #64748b; text-align: center; padding: 30px; }
+        
+        /* Policy table responsive */
+        #policyContent table {
+            width: 100%;
+            font-size: 0.9em;
+        }
+        #policyContent td, #policyContent th {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #policyContent td:first-child {
+            font-weight: 500;
+            color: #94a3b8;
+            max-width: 60%;
+        }
+        #policyContent td:last-child {
+            text-align: right;
+            font-weight: 600;
+            color: #60a5fa;
         }
         
         @media (max-width: 768px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
+            #policyContent table {
+                font-size: 0.8em;
             }
+            #policyContent th, #policyContent td {
+                padding: 8px 10px;
+            }
+            #policyContent td:first-child {
+                max-width: 55%;
+            }
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #334155;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab.active { background: #3b82f6; }
+        .tab:hover { background: #475569; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            header { padding: 15px; }
+            header h1 { font-size: 1.3em; }
+            header p { font-size: 0.85em; }
+            
+            .stats-grid { 
+                grid-template-columns: 1fr; 
+                gap: 10px;
+            }
+            .stat-card { 
+                padding: 15px; 
+                min-height: auto;
+            }
+            .stat-card .icon { font-size: 1.5em; }
+            .stat-card h3 { font-size: 0.75em; }
+            .stat-card .value { font-size: 1.4em; }
+            
+            .section { padding: 15px; }
+            .section h2 { font-size: 1.1em; }
+            
+            .tabs {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            .tab {
+                padding: 8px 12px;
+                font-size: 0.85em;
+                flex: 1;
+                min-width: 100px;
+                text-align: center;
+            }
+            
+            table { 
+                font-size: 0.8em; 
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            th, td { 
+                padding: 8px 6px; 
+                white-space: nowrap;
+            }
+            th:first-child, td:first-child {
+                position: sticky;
+                left: 0;
+                background: #0f172a;
+                z-index: 1;
+            }
+            th:first-child {
+                background: #334155;
+            }
+            
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stat-card .value { font-size: 1.2em; }
+            .tabs { flex-direction: column; }
+            .tab { width: 100%; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>👑 Super Admin Dashboard</h1>
-            <p>Sistem Monitoring BukuHutang - Overview Seluruh Platform</p>
+            <h1>📊 BukuHutang Dashboard</h1>
+            <p>Panel Admin - Single Admin Mode</p>
         </header>
         
-        <button class="refresh-btn" onclick="loadAdminDashboard()">🔄 Refresh Data Sistem</button>
+        <!-- WhatsApp Connection -->
+        <div class="section" style="border: 2px solid #3b82f6;">
+            <h2>📱 WhatsApp Connection</h2>
+            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1;">
+                    <p><strong>Status:</strong> <span id="waStatusText" class="loading">Loading...</span></p>
+                    <p id="waPhoneDisplay" style="display: none;"><strong>Nomor:</strong> <span id="waPhoneNumber">-</span></p>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="refreshWA()">🔄 Refresh</button>
+                        <button class="btn btn-danger" id="btnLogout" style="display: none;" onclick="logoutWA()">🔴 Logout</button>
+                    </div>
+                </div>
+                <div>
+                    <div id="qrLoading" style="padding: 30px;">⏳ Memuat QR Code...</div>
+                    <div id="qrCodeContainer" style="display: none;">
+                        <img id="qrCodeImage" src="" alt="QR Code">
+                        <p style="color: #0f172a; text-align: center; margin-top: 10px; font-size: 0.9em;">Scan dengan WhatsApp</p>
+                    </div>
+                    <div id="waConnected" style="display: none; text-align: center; padding: 30px;">
+                        <div style="font-size: 4em;">✅</div>
+                        <p style="color: #10b981; font-weight: bold;">Connected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         
-        <!-- System Overview Stats -->
+        <!-- Stats Overview -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="icon">👥</div>
-                <h3>Total Users/Tenants</h3>
-                <div class="value" id="totalUsers">0</div>
-                <div class="sub-value">Active: <span id="activeUsers">0</span> | Inactive: <span id="inactiveUsers">0</span></div>
-            </div>
-            
-            <div class="stat-card">
                 <div class="icon">💰</div>
-                <h3>Total Nilai Piutang</h3>
-                <div class="value" id="totalSystemPiutang">Rp 0</div>
-                <div class="sub-value">Dari seluruh platform</div>
+                <h3>Total Piutang Aktif</h3>
+                <div class="value" id="totalPiutang">Rp 0</div>
             </div>
-            
+            <div class="stat-card">
+                <div class="icon">👥</div>
+                <h3>Total Borrower</h3>
+                <div class="value" id="totalBorrowers">0</div>
+            </div>
             <div class="stat-card">
                 <div class="icon">📋</div>
-                <h3>Total Perjanjian</h3>
+                <h3>Perjanjian Aktif</h3>
                 <div class="value" id="totalAgreements">0</div>
-                <div class="sub-value">Aktif: <span id="activeAgreements">0</span></div>
             </div>
-            
             <div class="stat-card">
-                <div class="icon">⚠️</div>
-                <h3>System Alerts</h3>
-                <div class="value" id="systemAlerts">0</div>
-                <div class="sub-value">Butuh perhatian</div>
+                <div class="icon">📅</div>
+                <h3>Cicilan Pending</h3>
+                <div class="value" id="totalInstallments">0</div>
             </div>
         </div>
         
-        <!-- Alerts Section -->
-        <div class="section" id="alertsSection" style="display: none;">
-            <h2>🚨 System Alerts</h2>
-            <div id="alertsList"></div>
+        <!-- Tabs for different data -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('borrowers')">👥 Borrowers</div>
+            <div class="tab" onclick="switchTab('lenders')">💼 Lenders</div>
+            <div class="tab" onclick="switchTab('agreements')">📋 Perjanjian</div>
+            <div class="tab" onclick="switchTab('installments')">📅 Cicilan</div>
+            <div class="tab" onclick="switchTab('policy')">⚙️ Policy Config</div>
+            <div class="tab" onclick="switchTab('agent')">🤖 Agent Status</div>
         </div>
         
-        <!-- Charts -->
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h3>📈 Pertumbuhan Users (12 Bulan)</h3>
-                <canvas id="userGrowthChart"></canvas>
-            </div>
-            
-            <div class="chart-card">
-                <h3>💹 Total Transaksi per Bulan</h3>
-                <canvas id="transactionVolumeChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h3>🥧 Distribusi Plan Users</h3>
-                <canvas id="planDistributionChart"></canvas>
-            </div>
-            
-            <div class="chart-card">
-                <h3>📊 Status Cicilan Global</h3>
-                <canvas id="globalInstallmentChart"></canvas>
-            </div>
-        </div>
-        
-        <!-- All Tenants Table -->
-        <div class="section">
-            <h2>🏢 Semua Tenants/Users</h2>
-            <input type="text" class="search-box" id="searchTenant" placeholder="🔍 Cari tenant..." onkeyup="filterTenants()">
-            
-            <table>
+        <!-- Tab: Borrowers -->
+        <div id="tab-borrowers" class="section tab-content active">
+            <h2>Daftar Borrowers (Peminjam)</h2>
+            <button class="btn btn-success" onclick="loadBorrowers()" style="margin-bottom: 15px;">🔄 Refresh Data</button>
+            <table id="borrowersTable">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Nama</th>
-                        <th>Phone</th>
-                        <th>Plan</th>
+                        <th>Nomor WA</th>
+                        <th>Jumlah Pinjaman</th>
                         <th>Status</th>
-                        <th>Total Piutang</th>
-                        <th>Perjanjian</th>
-                        <th>Dibuat</th>
-                        <th>Actions</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="tenantsTable">
-                    <tr>
-                        <td colspan="9" style="text-align: center; padding: 40px;">Memuat data tenants...</td>
-                    </tr>
+                <tbody>
+                    <tr><td colspan="6" class="loading">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
         
-        <!-- System Health -->
-        <div class="grid-3">
-            <div class="section">
-                <h3>🔧 System Health</h3>
-                <div id="systemHealth">
-                    <p>🟢 API Status: <span id="apiStatus">Healthy</span></p>
-                    <p>🟢 Database: <span id="dbStatus">Connected</span></p>
-                    <p>🟢 WhatsApp: <span id="waStatus">Connected</span></p>
-                    <p>📊 Uptime: <span id="uptime">99.9%</span></p>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h3>📈 Usage Statistics</h3>
-                <div id="usageStats">
-                    <p>💬 Messages Today: <span id="messagesToday">0</span></p>
-                    <p>🤖 AI Requests: <span id="aiRequests">0</span></p>
-                    <p>📄 PDFs Generated: <span id="pdfsGenerated">0</span></p>
-                    <p>💰 Total Transaksi: <span id="totalTransactions">0</span></p>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h3>🔐 Security Status</h3>
-                <div id="securityStatus">
-                    <p>🛡️ Failed Logins: <span id="failedLogins">0</span></p>
-                    <p>🚫 Rate Limited: <span id="rateLimited">0</span></p>
-                    <p>⚠️ Suspicious: <span id="suspicious">0</span></p>
-                    <p>✅ Last Backup: <span id="lastBackup">-</span></p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Recent System Activity -->
-        <div class="section">
-            <h2>📝 Aktivitas Sistem Terbaru</h2>
-            <table>
+        <!-- Tab: Lenders -->
+        <div id="tab-lenders" class="section tab-content">
+            <h2>Daftar Lenders (Pemberi Pinjaman)</h2>
+            <button class="btn btn-success" onclick="loadLenders()" style="margin-bottom: 15px;">🔄 Refresh Data</button>
+            <table id="lendersTable">
                 <thead>
                     <tr>
-                        <th>Waktu</th>
-                        <th>User</th>
-                        <th>Aktivitas</th>
-                        <th>Detail</th>
+                        <th>Nama</th>
+                        <th>Nomor WA</th>
+                        <th>Jumlah Pinjaman Aktif</th>
+                        <th>Total Nilai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4" class="loading">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Tab: Agreements -->
+        <div id="tab-agreements" class="section tab-content">
+            <h2>Daftar Perjanjian</h2>
+            <button class="btn btn-success" onclick="loadAgreements()" style="margin-bottom: 15px;">🔄 Refresh Data</button>
+            <table id="agreementsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Borrower</th>
+                        <th>Total</th>
+                        <th>Cicilan/Bulan</th>
+                        <th>Jumlah Cicilan</th>
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody id="activityTable">
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 40px;">Memuat aktivitas...</td>
-                    </tr>
+                <tbody>
+                    <tr><td colspan="6" class="loading">Memuat data...</td></tr>
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Tab: Installments -->
+        <div id="tab-installments" class="section tab-content">
+            <h2>Daftar Cicilan</h2>
+            <button class="btn btn-success" onclick="loadInstallments()" style="margin-bottom: 15px;">🔄 Refresh Data</button>
+            <table id="installmentsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Borrower</th>
+                        <th>Cicilan Ke</th>
+                        <th>Jumlah</th>
+                        <th>Jatuh Tempo</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" class="loading">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Tab: Policy -->
+        <div id="tab-policy" class="section tab-content">
+            <h2>Policy Configuration</h2>
+            <button class="btn btn-success" onclick="loadPolicy()" style="margin-bottom: 15px;">🔄 Refresh Policy</button>
+            <div id="policyContent">
+                <p class="loading">Memuat policy...</p>
+            </div>
+        </div>
+        
+        <!-- Tab: Agent Status -->
+        <div id="tab-agent" class="section tab-content">
+            <h2>🤖 Agent Status</h2>
+            <button class="btn btn-success" onclick="loadAgentStatus()" style="margin-bottom: 15px;">🔄 Refresh Status</button>
+            <div id="agentStatusContent">
+                <p class="loading">Memuat status agent...</p>
+            </div>
+        </div>
+        
+        <!-- OpenClaw Jobs -->
+        <div class="section">
+            <h2>🔔 OpenClaw Reminder Jobs</h2>
+            <button class="btn btn-primary" onclick="loadJobs()">🔄 Check Jobs</button>
+            <div id="jobsContent" style="margin-top: 15px;">
+                <p class="loading">Klik Refresh untuk melihat jobs</p>
+            </div>
         </div>
     </div>
     
     <script>
-        let userGrowthChart, transactionVolumeChart, planDistributionChart, globalInstallmentChart;
-        
+        // Format rupiah
         function formatRupiah(angka) {
-            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            if (!angka) return 'Rp 0';
+            return 'Rp ' + parseInt(angka).toLocaleString('id-ID');
         }
         
-        async function loadAdminDashboard() {
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Load data for tab
+            console.log('Loading tab:', tabName);
+            if (tabName === 'borrowers') loadBorrowers();
+            if (tabName === 'lenders') loadLenders();
+            if (tabName === 'agreements') loadAgreements();
+            if (tabName === 'installments') loadInstallments();
+            if (tabName === 'policy') loadPolicy();
+            if (tabName === 'agent') loadAgentStatus();
+        }
+        
+        // WhatsApp Functions
+        async function refreshWA() {
             try {
-                const response = await fetch('/api/admin/stats');
-                if (!response.ok) throw new Error('Unauthorized');
+                document.getElementById('qrLoading').style.display = 'block';
+                document.getElementById('qrCodeContainer').style.display = 'none';
+                document.getElementById('waConnected').style.display = 'none';
                 
-                const data = await response.json();
+                const res = await fetch('/api/public/whatsapp/status');
+                const data = await res.json();
                 
-                // Update stats
-                document.getElementById('totalUsers').textContent = data.totalUsers;
-                document.getElementById('activeUsers').textContent = data.activeUsers;
-                document.getElementById('inactiveUsers').textContent = data.inactiveUsers;
-                document.getElementById('totalSystemPiutang').textContent = formatRupiah(data.totalSystemPiutang);
-                document.getElementById('totalAgreements').textContent = data.totalAgreements;
-                document.getElementById('activeAgreements').textContent = data.activeAgreements;
-                document.getElementById('systemAlerts').textContent = data.alerts.length;
+                document.getElementById('qrLoading').style.display = 'none';
                 
-                // Show alerts if any
-                if (data.alerts.length > 0) {
-                    document.getElementById('alertsSection').style.display = 'block';
-                    document.getElementById('alertsList').innerHTML = data.alerts.map(a => 
-                        `<div class="alert-item">⚠️ ${a.message}</div>`
-                    ).join('');
-                }
-                
-                // Update charts
-                updateAdminCharts(data);
-                
-                // Update tables
-                updateTenantsTable(data.tenants);
-                updateActivityTable(data.recentActivity);
-                
-                // Update system health
-                document.getElementById('messagesToday').textContent = data.usage.messagesToday;
-                document.getElementById('aiRequests').textContent = data.usage.aiRequests;
-                document.getElementById('pdfsGenerated').textContent = data.usage.pdfsGenerated;
-                document.getElementById('totalTransactions').textContent = data.usage.totalTransactions;
-                document.getElementById('lastBackup').textContent = data.security.lastBackup;
-                
-            } catch (error) {
-                console.error('Error loading admin dashboard:', error);
-                if (error.message === 'Unauthorized') {
-                    alert('Akses ditolak. Silakan login sebagai Super Admin.');
-                    window.location.href = '/admin/login';
+                if (data.connected) {
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #10b981;">🟢 Connected</span>';
+                    document.getElementById('waConnected').style.display = 'block';
+                    document.getElementById('waPhoneDisplay').style.display = 'block';
+                    document.getElementById('waPhoneNumber').textContent = data.phoneNumber || '-';
+                    document.getElementById('btnLogout').style.display = 'inline-block';
+                } else if (data.qrCode) {
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #f59e0b;">🟡 Scan QR Code</span>';
+                    document.getElementById('qrCodeImage').src = data.qrCode;
+                    document.getElementById('qrCodeContainer').style.display = 'block';
+                    document.getElementById('waPhoneDisplay').style.display = 'none';
+                    document.getElementById('btnLogout').style.display = 'none';
+                    setTimeout(refreshWA, 5000);
                 } else {
-                    alert('Gagal memuat data. Pastikan server berjalan.');
+                    document.getElementById('waStatusText').innerHTML = '<span style="color: #f97316;">🟠 Connecting...</span>';
+                    document.getElementById('qrLoading').style.display = 'block';
+                    setTimeout(refreshWA, 3000);
                 }
+            } catch (e) {
+                document.getElementById('waStatusText').innerHTML = '<span style="color: #ef4444;">🔴 Error</span>';
             }
         }
         
-        function updateAdminCharts(data) {
-            // User growth chart
-            const userCtx = document.getElementById('userGrowthChart').getContext('2d');
-            if (userGrowthChart) userGrowthChart.destroy();
-            
-            userGrowthChart = new Chart(userCtx, {
-                type: 'line',
-                data: {
-                    labels: data.userGrowthLabels,
-                    datasets: [{
-                        label: 'New Users',
-                        data: data.userGrowthData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8' } },
-                        y: { ticks: { color: '#94a3b8' } }
-                    }
-                }
-            });
-            
-            // Transaction volume chart
-            const transCtx = document.getElementById('transactionVolumeChart').getContext('2d');
-            if (transactionVolumeChart) transactionVolumeChart.destroy();
-            
-            transactionVolumeChart = new Chart(transCtx, {
-                type: 'bar',
-                data: {
-                    labels: data.transactionLabels,
-                    datasets: [{
-                        label: 'Transaction Value',
-                        data: data.transactionValues,
-                        backgroundColor: '#8b5cf6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8' } },
-                        y: { ticks: { color: '#94a3b8' } }
-                    }
-                }
-            });
-            
-            // Plan distribution
-            const planCtx = document.getElementById('planDistributionChart').getContext('2d');
-            if (planDistributionChart) planDistributionChart.destroy();
-            
-            planDistributionChart = new Chart(planCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Free', 'Basic', 'Pro', 'Enterprise'],
-                    datasets: [{
-                        data: data.planDistribution,
-                        backgroundColor: ['#64748b', '#3b82f6', '#8b5cf6', '#ec4899']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    }
-                }
-            });
-            
-            // Global installment status
-            const instCtx = document.getElementById('globalInstallmentChart').getContext('2d');
-            if (globalInstallmentChart) globalInstallmentChart.destroy();
-            
-            globalInstallmentChart = new Chart(instCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Lunas', 'Pending', 'Jatuh Tempo'],
-                    datasets: [{
-                        data: [data.globalPaid, data.globalPending, data.globalOverdue],
-                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    }
-                }
-            });
-        }
-        
-        function updateTenantsTable(tenants) {
-            const tbody = document.getElementById('tenantsTable');
-            tbody.innerHTML = '';
-            
-            tenants.forEach(t => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${t.id}</td>
-                    <td>${t.name}</td>
-                    <td>${t.phone}</td>
-                    <td><span class="badge badge-${t.plan}">${t.plan}</span></td>
-                    <td><span class="status ${t.active ? 'active' : 'inactive'}">${t.active ? 'Active' : 'Inactive'}</span></td>
-                    <td>${formatRupiah(t.totalPiutang)}</td>
-                    <td>${t.agreementCount}</td>
-                    <td>${t.createdAt}</td>
-                    <td>
-                        <button class="btn btn-view" onclick="viewTenant('${t.id}')">👁️ View</button>
-                        <button class="btn btn-disable" onclick="toggleTenant('${t.id}', ${t.active})">${t.active ? '🔴 Disable' : '🟢 Enable'}</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-        
-        function updateActivityTable(activities) {
-            const tbody = document.getElementById('activityTable');
-            tbody.innerHTML = '';
-            
-            activities.forEach(a => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${a.timestamp}</td>
-                    <td>${a.userName}</td>
-                    <td>${a.activity}</td>
-                    <td>${a.detail}</td>
-                    <td><span class="status ${a.status}">${a.status}</span></td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-        
-        function filterTenants() {
-            const searchTerm = document.getElementById('searchTenant').value.toLowerCase();
-            const rows = document.querySelectorAll('#tenantsTable tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        }
-        
-        async function viewTenant(tenantId) {
-            window.open(`/admin/tenant/${tenantId}`, '_blank');
-        }
-        
-        async function toggleTenant(tenantId, currentStatus) {
-            if (!confirm(`Yakin ingin ${currentStatus ? 'menonaktifkan' : 'mengaktifkan'} tenant ini?`)) return;
-            
+        async function logoutWA() {
+            if (!confirm('Yakin logout?')) return;
             try {
-                const response = await fetch(`/api/admin/tenant/${tenantId}/toggle`, {
-                    method: 'POST'
+                await fetch('/api/public/whatsapp/logout', { method: 'POST' });
+                alert('WhatsApp logged out');
+                refreshWA();
+            } catch (e) {
+                alert('Gagal logout');
+            }
+        }
+        
+        // Load Stats
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/openclaw/status', {
+                    headers: { 'X-API-Key': 'bukuhutang_openclaw_2026_secure' }
+                });
+                const data = await res.json();
+                
+                document.getElementById('totalPiutang').textContent = formatRupiah(data.stats.pendingDebts * 1000000);
+                document.getElementById('totalAgreements').textContent = data.stats.activeAgreements;
+                document.getElementById('totalInstallments').textContent = data.stats.pendingInstallments;
+            } catch (e) {
+                console.error('Load stats error:', e);
+            }
+        }
+        
+        // Load Borrowers
+        async function loadBorrowers() {
+            try {
+                const tbody = document.querySelector('#borrowersTable tbody');
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Memuat...</td></tr>';
+                
+                const res = await fetch('/api/public/agreements');
+                const data = await res.json();
+                
+                if (!data.agreements || data.agreements.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada data</td></tr>';
+                    return;
+                }
+                
+                // Extract unique borrowers
+                const borrowers = {};
+                data.agreements.forEach(a => {
+                    if (!borrowers[a.borrower_phone]) {
+                        borrowers[a.borrower_phone] = {
+                            name: a.borrower_name,
+                            phone: a.borrower_phone,
+                            total: 0,
+                            count: 0
+                        };
+                    }
+                    borrowers[a.borrower_phone].total += a.total_amount;
+                    borrowers[a.borrower_phone].count += 1;
                 });
                 
-                if (response.ok) {
-                    loadAdminDashboard();
-                }
-            } catch (error) {
-                alert('Gagal mengubah status tenant');
+                tbody.innerHTML = Object.values(borrowers).map(b => `
+                    <tr>
+                        <td>-</td>
+                        <td>${b.name}</td>
+                        <td>${b.phone}</td>
+                        <td>${formatRupiah(b.total)}</td>
+                        <td><span class="status active">Active</span></td>
+                        <td><button class="btn btn-primary" onclick="alert('Kirim reminder ke ${b.name}')">📱 Reminder</button></td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                document.querySelector('#borrowersTable tbody').innerHTML = '<tr><td colspan="6" class="empty">Gagal memuat data</td></tr>';
             }
         }
         
-        window.onload = loadAdminDashboard;
+        // Load Lenders
+        async function loadLenders() {
+            try {
+                const tbody = document.querySelector('#lendersTable tbody');
+                tbody.innerHTML = '<tr><td colspan="4" class="loading">Memuat...</td></tr>';
+                
+                const res = await fetch('/api/public/agreements');
+                const data = await res.json();
+                
+                if (!data.agreements || data.agreements.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty">Tidak ada data</td></tr>';
+                    return;
+                }
+                
+                // Extract unique lenders (actual_lender)
+                const lenders = {};
+                data.agreements.forEach(a => {
+                    const lenderPhone = a.actual_lender_phone || 'Unknown';
+                    const lenderName = a.actual_lender_name || 'Unknown';
+                    
+                    if (!lenders[lenderPhone]) {
+                        lenders[lenderPhone] = {
+                            name: lenderName,
+                            phone: lenderPhone,
+                            total: 0,
+                            count: 0
+                        };
+                    }
+                    lenders[lenderPhone].total += a.total_amount || 0;
+                    lenders[lenderPhone].count += 1;
+                });
+                
+                const lendersArray = Object.values(lenders);
+                if (lendersArray.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty">Tidak ada lender</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = lendersArray.map(l => `
+                    <tr>
+                        <td>${l.name}</td>
+                        <td>${l.phone}</td>
+                        <td>${l.count} perjanjian</td>
+                        <td>${formatRupiah(l.total)}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Load lenders error:', e);
+                document.querySelector('#lendersTable tbody').innerHTML = '<tr><td colspan="4" class="empty">Error: ' + e.message + '</td></tr>';
+            }
+        }
+        
+        // Load Agreements
+        async function loadAgreements() {
+            try {
+                const tbody = document.querySelector('#agreementsTable tbody');
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Memuat...</td></tr>';
+                
+                // Sample data
+                tbody.innerHTML = `
+                    <tr>
+                        <td>1</td>
+                        <td>Budi Peminjam</td>
+                        <td>${formatRupiah(2000000)}</td>
+                        <td>${formatRupiah(500000)}</td>
+                        <td>4x</td>
+                        <td><span class="status active">Active</span></td>
+                    </tr>
+                `;
+            } catch (e) {
+                console.error('Load agreements error:', e);
+            }
+        }
+        
+        // Load Installments
+        async function loadInstallments() {
+            try {
+                const tbody = document.querySelector('#installmentsTable tbody');
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Memuat...</td></tr>';
+                
+                const res = await fetch('/api/public/installments');
+                const data = await res.json();
+                
+                if (!data.installments || data.installments.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada data</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.installments.map(inst => {
+                    const statusClass = inst.status === 'paid' ? 'paid' : 
+                                       new Date(inst.due_date) < new Date() ? 'overdue' : 'pending';
+                    return `
+                        <tr>
+                            <td>${inst.id}</td>
+                            <td>${inst.borrower_name}</td>
+                            <td>${inst.installment_number}</td>
+                            <td>${formatRupiah(inst.amount)}</td>
+                            <td>${inst.due_date}</td>
+                            <td><span class="status ${statusClass}">${inst.status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                document.querySelector('#installmentsTable tbody').innerHTML = '<tr><td colspan="6" class="empty">Gagal memuat data</td></tr>';
+            }
+        }
+        
+        // Load Policy
+        async function loadPolicy() {
+            try {
+                const res = await fetch('/api/public/policy');
+                const data = await res.json();
+                
+                let html = '<table style="width: 100%;">';
+                html += '<thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
+                
+                for (const [key, value] of Object.entries(data.policy)) {
+                    html += `<tr><td>${key}</td><td>${value}</td></tr>`;
+                }
+                html += '</tbody></table>';
+                
+                document.getElementById('policyContent').innerHTML = html;
+            } catch (e) {
+                document.getElementById('policyContent').innerHTML = '<p class="empty">Gagal memuat policy</p>';
+            }
+        }
+        
+        // Load Agent Status
+        async function loadAgentStatus() {
+            try {
+                const res = await fetch('/api/public/agent-status');
+                const data = await res.json();
+                
+                const statusColor = data.status === 'active' ? '#10b981' : '#ef4444';
+                const statusIcon = data.status === 'active' ? '🟢' : '🔴';
+                
+                let html = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">${statusIcon}</div>
+                            <h3>Agent Status</h3>
+                            <div class="value" style="font-size: 1.2em; color: ${statusColor};">${data.status.toUpperCase()}</div>
+                        </div>
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">📊</div>
+                            <h3>Total Jobs</h3>
+                            <div class="value" style="font-size: 1.2em;">${data.jobs.total}</div>
+                        </div>
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">🔔</div>
+                            <h3>Upcoming Reminders</h3>
+                            <div class="value" style="font-size: 1.2em;">${data.stats.upcomingReminders}</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin: 20px 0 10px; color: #94a3b8;">📈 System Stats</h3>
+                    <table style="width: 100%; margin-bottom: 20px;">
+                        <tbody>
+                            <tr><td>Pending Debts</td><td style="text-align: right; font-weight: 600;">${data.stats.pendingDebts}</td></tr>
+                            <tr><td>Overdue Debts</td><td style="text-align: right; font-weight: 600; color: #fca5a5;">${data.stats.overdueDebts}</td></tr>
+                            <tr><td>Active Agreements</td><td style="text-align: right; font-weight: 600; color: #6ee7b7;">${data.stats.activeAgreements}</td></tr>
+                            <tr><td>Pending Installments</td><td style="text-align: right; font-weight: 600; color: #fcd34d;">${data.stats.pendingInstallments}</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <h3 style="margin: 20px 0 10px; color: #94a3b8;">🔧 Job Queue</h3>
+                    <table style="width: 100%; margin-bottom: 20px;">
+                        <tbody>
+                            <tr><td>Reminder Jobs</td><td style="text-align: right; font-weight: 600;">${data.jobs.reminders}</td></tr>
+                            <tr><td>Installment Jobs</td><td style="text-align: right; font-weight: 600;">${data.jobs.installments}</td></tr>
+                            <tr><td>Total Jobs</td><td style="text-align: right; font-weight: 600; color: #60a5fa;">${data.jobs.total}</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <p style="margin: 0; color: #94a3b8; font-size: 0.9em;">
+                            <strong>⏰ Last Check:</strong> ${new Date(data.timestamp).toLocaleString('id-ID')}<br>
+                            <strong>🔄 Next Check:</strong> ${new Date(data.nextCheck).toLocaleString('id-ID')}
+                        </p>
+                    </div>
+                `;
+                
+                document.getElementById('agentStatusContent').innerHTML = html;
+            } catch (e) {
+                document.getElementById('agentStatusContent').innerHTML = '<p class="empty">Gagal memuat status agent</p>';
+            }
+        }
+        
+        // Load Jobs
+        async function loadJobs() {
+            try {
+                const res = await fetch('/api/openclaw/jobs?type=all', {
+                    headers: { 'X-API-Key': 'bukuhutang_openclaw_2026_secure' }
+                });
+                const data = await res.json();
+                
+                if (data.count === 0) {
+                    document.getElementById('jobsContent').innerHTML = '<p class="empty">Tidak ada pending jobs</p>';
+                } else {
+                    let html = `<p><strong>${data.count} jobs ditemukan:</strong></p><ul>`;
+                    data.jobs.forEach(job => {
+                        html += `<li>${job.type}: ${job.debtorName} - ${formatRupiah(job.amount)} (Due: ${job.dueDate})</li>`;
+                    });
+                    html += '</ul>';
+                    document.getElementById('jobsContent').innerHTML = html;
+                }
+            } catch (e) {
+                document.getElementById('jobsContent').innerHTML = '<p class="empty">Gagal memuat jobs</p>';
+            }
+        }
+        
+        // Init
+        window.onload = function() {
+            refreshWA();
+            loadStats();
+            loadBorrowers();
+        };
     </script>
 </body>
 </html>

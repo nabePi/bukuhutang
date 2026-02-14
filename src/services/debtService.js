@@ -174,6 +174,25 @@ class DebtService {
       exceeded: currentCount >= maxDebts
     };
   }
+
+  // Get debts due for reminder within days window (for OpenClaw cron)
+  getDebtsDueForReminder(daysBeforeDue, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        d.*, 
+        u.phone_number as owner_phone,
+        julianday(d.due_date) - julianday('now') as days_until_due
+      FROM debts d
+      JOIN users u ON d.user_id = u.id
+      WHERE d.status = 'pending'
+      AND d.reminder_sent = 0
+      AND julianday(d.due_date) - julianday('now') <= ?
+      AND julianday(d.due_date) - julianday('now') >= -30
+      ORDER BY d.due_date ASC
+      LIMIT ?
+    `);
+    return stmt.all(daysBeforeDue, limit);
+  }
 }
 
 module.exports = new DebtService();

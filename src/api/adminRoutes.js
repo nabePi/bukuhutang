@@ -172,10 +172,129 @@ router.get('/sessions', requireSuperAdmin, async (req, res) => {
     }
 });
 
+// Get WhatsApp status for single admin mode
+router.get('/whatsapp/status', requireSuperAdmin, async (req, res) => {
+    try {
+        const client = global.whatsappClient;
+        
+        if (!client) {
+            return res.json({ 
+                connected: false, 
+                qrCode: null,
+                message: 'WhatsApp client not initialized'
+            });
+        }
+        
+        const status = client.getStatus();
+        const user = status.user;
+        
+        res.json({
+            connected: status.connected,
+            phoneNumber: user?.id?.split(':')[0] || null,
+            name: user?.name || null,
+            qrCode: status.qrCode
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Logout WhatsApp
+router.post('/whatsapp/logout', requireSuperAdmin, async (req, res) => {
+    try {
+        const client = global.whatsappClient;
+        
+        if (client && client.sock) {
+            await client.sock.logout();
+            res.json({ success: true, message: 'WhatsApp logged out' });
+        } else {
+            res.status(400).json({ error: 'WhatsApp not connected' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
+// SINGLE ADMIN MODE - REAL DATA ENDPOINTS
+// ============================================
+
+// Get all agreements
+router.get('/agreements', requireSuperAdmin, async (req, res) => {
+    try {
+        const { getConnection } = require('../db/connection');
+        const db = getConnection();
+        
+        const agreements = db.prepare(`
+            SELECT * FROM loan_agreements
+            ORDER BY created_at DESC
+        `).all();
+        
+        res.json({ agreements });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all installments
+router.get('/installments', requireSuperAdmin, async (req, res) => {
+    try {
+        const { getConnection } = require('../db/connection');
+        const db = getConnection();
+        
+        const installments = db.prepare(`
+            SELECT i.*, la.borrower_name, la.borrower_phone, la.actual_lender_name
+            FROM installment_payments i
+            JOIN loan_agreements la ON i.agreement_id = la.id
+            ORDER BY i.due_date ASC
+        `).all();
+        
+        res.json({ installments });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Send reminder to debtor
+router.post('/debts/:id/reminder', requireSuperAdmin, async (req, res) => {
+    try {
+        const { getConnection } = require('../db/connection');
+        const db = getConnection();
+        
+        const debt = db.prepare('SELECT * FROM debts WHERE id = ?').get(req.params.id);
+        if (!debt) {
+            return res.status(404).json({ error: 'Debt not found' });
+        }
+        
+        if (!debt.debtor_phone) {
+            return res.status(400).json({ error: 'Debtor has no phone number' });
+        }
+        
+        // Send WhatsApp message
+        const client = global.whatsappClient;
+        if (!client) {
+            return res.status(500).json({ error: 'WhatsApp not connected' });
+        }
+        
+        const message = `*PENGINGAT HUTANG*\n\nHalo ${debt.debtor_name},\n\nIni pengingat pembayaran hutang:\n📋 ${debt.description || 'Hutang'}\n💰 Rp ${debt.amount.toLocaleString('id-ID')}\n📅 Jatuh tempo: ${debt.due_date}\n\nMohon segera melakukan pembayaran. Terima kasih! 🙏`;
+        
+        await client.sendMessage(debt.debtor_phone + '@s.whatsapp.net', message);
+        
+        // Mark reminder as sent
+        db.prepare('UPDATE debts SET reminder_sent = 1 WHERE id = ?').run(req.params.id);
+        
+        res.json({ success: true, message: 'Reminder sent' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // System stats helper
 async function getSystemStats() {
     const tenants = tenantRegistrationService.listAllTenants();
     const sessions = multiSessionManager.getAllSessions();
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
     
     let totalSystemPiutang = 0;
     let totalAgreements = 0;
@@ -185,7 +304,11 @@ async function getSystemStats() {
     let globalOverdue = 0;
     
     for (const tenant of tenants) {
-        totalSystemPiutang += tenant.debt_count * 1000000; // Approximation
+        // Get real debt amounts for this tenant
+        const tenantDebts = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM debts WHERE tenant_id = ? AND status = ?')
+            .get(tenant.id, 'pending');
+        totalSystemPiutang += tenantDebts?.total || 0;
+        
         totalAgreements += tenant.agreement_count;
         
         const stats = tenantRegistrationService.getTenantStats(tenant.id);
@@ -199,6 +322,44 @@ async function getSystemStats() {
     
     const activeSessions = sessions.filter(s => s.connected).length;
     const pendingQR = sessions.filter(s => s.hasQR && !s.connected).length;
+    
+    // Get real transaction data for last 6 months
+    const months = [];
+    const monthLabels = [];
+    const monthValues = [];
+    
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const monthStr = d.toISOString().slice(0, 7); // YYYY-MM
+        const monthName = d.toLocaleString('id-ID', { month: 'short' });
+        months.push(monthStr);
+        monthLabels.push(monthName);
+        
+        // Get total debt amount for this month
+        const monthTotal = db.prepare(`
+            SELECT COALESCE(SUM(amount), 0) as total 
+            FROM debts 
+            WHERE strftime('%Y-%m', created_at) = ?
+        `).get(monthStr);
+        
+        monthValues.push(monthTotal?.total || 0);
+    }
+    
+    // Get total messages sent today (from reminders)
+    const today = new Date().toISOString().slice(0, 10);
+    const messagesToday = db.prepare(`
+        SELECT COUNT(*) as count FROM reminders 
+        WHERE date(sent_at) = date('now') AND status = 'sent'
+    `).get();
+    
+    // Get total AI requests (placeholder - would need tracking table)
+    const totalTransactions = db.prepare('SELECT COUNT(*) as count FROM debts').get();
+    const totalAgreementsCount = db.prepare('SELECT COUNT(*) as count FROM loan_agreements').get();
+    const totalPDFs = db.prepare(`
+        SELECT COUNT(*) as count FROM loan_agreements 
+        WHERE status IN ('active', 'completed')
+    `).get();
     
     return {
         totalUsers: tenants.length,
@@ -214,11 +375,11 @@ async function getSystemStats() {
             pendingQR: pendingQR,
             disconnected: sessions.length - activeSessions - pendingQR
         },
-        alerts: generateSystemAlerts(tenants),
-        userGrowthLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        userGrowthData: [5, 8, 12, 15, 18, 22, 25, 28, 32, 35, 38, 42],
-        transactionLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        transactionValues: [5000000, 8000000, 12000000, 15000000, 18000000, 22000000],
+        alerts: generateSystemAlerts(tenants, db),
+        userGrowthLabels: monthLabels,
+        userGrowthData: monthValues.map((v, i) => Math.max(1, Math.floor(v / 1000000))), // Convert to user count approximation
+        transactionLabels: monthLabels,
+        transactionValues: monthValues,
         planDistribution: [
             tenants.filter(t => t.plan === 'free').length,
             tenants.filter(t => t.plan === 'basic').length,
@@ -240,22 +401,22 @@ async function getSystemStats() {
         })),
         recentActivity: generateRecentActivity(),
         usage: {
-            messagesToday: 156,
-            aiRequests: 89,
-            pdfsGenerated: 23,
-            totalTransactions: 45,
+            messagesToday: messagesToday?.count || 0,
+            aiRequests: 0, // Would need AI tracking table
+            pdfsGenerated: totalPDFs?.count || 0,
+            totalTransactions: (totalTransactions?.count || 0) + (totalAgreementsCount?.count || 0),
             activeWhatsAppSessions: activeSessions
         },
         security: {
-            failedLogins: 3,
-            rateLimited: 1,
+            failedLogins: 0,
+            rateLimited: 0,
             suspicious: 0,
             lastBackup: new Date().toLocaleDateString('id-ID')
         }
     };
 }
 
-function generateSystemAlerts(tenants) {
+function generateSystemAlerts(tenants, db) {
     const alerts = [];
     const inactiveTenants = tenants.filter(t => t.status === 'inactive');
     
@@ -274,21 +435,109 @@ function generateSystemAlerts(tenants) {
         });
     }
     
+    // Check for overdue debts
+    const overdueDebts = db.prepare(`
+        SELECT COUNT(*) as count FROM debts 
+        WHERE status = 'pending' AND due_date < date('now')
+    `).get();
+    
+    if (overdueDebts?.count > 0) {
+        alerts.push({
+            type: 'warning',
+            message: `${overdueDebts.count} hutang/piutang jatuh tempo`
+        });
+    }
+    
     alerts.push({ 
         type: 'success',
-        message: 'Backup otomatis berjalan normal' 
+        message: 'Sistem berjalan normal' 
     });
     
     return alerts;
 }
 
 function generateRecentActivity() {
-    return [
-        { timestamp: '2025-02-13 14:30', userName: 'Dani', activity: 'Create Agreement', detail: 'Ahmad - Rp 5.000.000', status: 'success' },
-        { timestamp: '2025-02-13 14:25', userName: 'Budi', activity: 'Record Payment', detail: 'Installment #2 - Rp 1.000.000', status: 'success' },
-        { timestamp: '2025-02-13 14:20', userName: 'System', activity: 'Auto Reminder', detail: 'Sent to 3 borrowers', status: 'success' },
-        { timestamp: '2025-02-13 14:15', userName: 'Ani', activity: 'New User', detail: 'Tenant registered', status: 'success' }
-    ];
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    
+    const activities = [];
+    
+    // Get recent debts (last 10)
+    const recentDebts = db.prepare(`
+        SELECT d.*, t.name as tenant_name 
+        FROM debts d 
+        JOIN tenants t ON d.tenant_id = t.id 
+        ORDER BY d.created_at DESC 
+        LIMIT 5
+    `).all();
+    
+    recentDebts.forEach(d => {
+        activities.push({
+            timestamp: d.created_at,
+            userName: d.tenant_name || 'Unknown',
+            activity: 'Catat Piutang',
+            detail: `${d.debtor_name} - Rp ${d.amount.toLocaleString('id-ID')}`,
+            status: d.status === 'paid' ? 'success' : 'pending'
+        });
+    });
+    
+    // Get recent loan agreements (last 5)
+    const recentAgreements = db.prepare(`
+        SELECT la.*, t.name as tenant_name 
+        FROM loan_agreements la 
+        JOIN tenants t ON la.lender_id = t.id 
+        ORDER BY la.created_at DESC 
+        LIMIT 5
+    `).all();
+    
+    recentAgreements.forEach(a => {
+        activities.push({
+            timestamp: a.created_at,
+            userName: a.tenant_name || 'Unknown',
+            activity: 'Buat Perjanjian',
+            detail: `${a.borrower_name} - Rp ${a.total_amount.toLocaleString('id-ID')}`,
+            status: a.status === 'active' ? 'success' : 'pending'
+        });
+    });
+    
+    // Get recent installment payments (last 5)
+    const recentPayments = db.prepare(`
+        SELECT ip.*, la.borrower_name, t.name as tenant_name 
+        FROM installment_payments ip 
+        JOIN loan_agreements la ON ip.agreement_id = la.id 
+        JOIN tenants t ON la.lender_id = t.id 
+        WHERE ip.status = 'paid'
+        ORDER BY ip.paid_at DESC 
+        LIMIT 5
+    `).all();
+    
+    recentPayments.forEach(p => {
+        activities.push({
+            timestamp: p.paid_at,
+            userName: p.tenant_name || 'Unknown',
+            activity: 'Terima Cicilan',
+            detail: `${p.borrower_name} - Rp ${p.amount.toLocaleString('id-ID')}`,
+            status: 'success'
+        });
+    });
+    
+    // Sort by timestamp desc and take top 10
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // If no activities, return empty array (no dummy data)
+    return activities.slice(0, 10).map(a => ({
+        timestamp: new Date(a.timestamp).toLocaleString('id-ID', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }),
+        userName: a.userName,
+        activity: a.activity,
+        detail: a.detail,
+        status: a.status
+    }));
 }
 
 module.exports = router;
