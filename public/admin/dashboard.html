@@ -1269,10 +1269,16 @@
                     document.getElementById('qrSection').style.display = 'block';
                     startQRCountdown(120);
                     
+                    // Show success popup
+                    showModal('QR Code berhasil dibuat!\n\nScan dengan WhatsApp di HP Anda dalam waktu 2 menit.', 'QR Generated', 'success');
+                    
                     qrTimer = setTimeout(() => {
                         document.getElementById('qrSection').style.display = 'none';
                         showModal('QR Code expired. Silakan generate ulang.', 'QR Expired', 'warning');
                     }, 120000);
+                } else {
+                    // QR not ready yet
+                    showModal('QR Code belum siap. Tunggu beberapa detik dan coba lagi.', 'QR Not Ready', 'warning');
                 }
             } catch (e) {
                 showModal('Gagal generate QR code', 'Error', 'error');
