@@ -1153,6 +1153,28 @@
             const pageMap = ['overview', 'borrowers', 'lenders', 'agreements', 'installments', 'system'];
             const index = pageMap.indexOf(pageName);
             if (index >= 0) navItems[index].classList.add('active');
+            
+            // Auto-load data for each page
+            switch(pageName) {
+                case 'overview':
+                    loadStats();
+                    break;
+                case 'borrowers':
+                    loadBorrowers();
+                    break;
+                case 'lenders':
+                    loadLenders();
+                    break;
+                case 'agreements':
+                    loadAgreements();
+                    break;
+                case 'installments':
+                    loadInstallments();
+                    break;
+                case 'system':
+                    loadSystemResources();
+                    break;
+            }
         }
 
         // Modal
@@ -1342,10 +1364,12 @@
 
         // Load Borrowers
         async function loadBorrowers() {
+            const tbody = document.querySelector('#borrowersTable tbody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px;"><div class="pulse" style="color: var(--success);">⏳ Memuat data...</div></td></tr>';
+            
             try {
                 const res = await fetch('/api/public/agreements');
                 const data = await res.json();
-                const tbody = document.querySelector('#borrowersTable tbody');
                 
                 const borrowers = {};
                 data.agreements?.forEach(a => {
@@ -1379,10 +1403,12 @@
 
         // Load Lenders
         async function loadLenders() {
+            const tbody = document.querySelector('#lendersTable tbody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px;"><div class="pulse" style="color: var(--success);">⏳ Memuat data...</div></td></tr>';
+            
             try {
                 const res = await fetch('/api/public/agreements');
                 const data = await res.json();
-                const tbody = document.querySelector('#lendersTable tbody');
                 
                 const lenders = {};
                 data.agreements?.forEach(a => {
@@ -1419,10 +1445,12 @@
 
         // Load Agreements
         async function loadAgreements() {
+            const tbody = document.querySelector('#agreementsTable tbody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;"><div class="pulse" style="color: var(--success);">⏳ Memuat data...</div></td></tr>';
+            
             try {
                 const res = await fetch('/api/public/agreements');
                 const data = await res.json();
-                const tbody = document.querySelector('#agreementsTable tbody');
                 
                 if (data.agreements?.length) {
                     tbody.innerHTML = data.agreements.map(a => `
@@ -1444,10 +1472,12 @@
 
         // Load Installments
         async function loadInstallments() {
+            const tbody = document.querySelector('#installmentsTable tbody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;"><div class="pulse" style="color: var(--success);">⏳ Memuat data...</div></td></tr>';
+            
             try {
                 const res = await fetch('/api/public/installments');
                 const data = await res.json();
-                const tbody = document.querySelector('#installmentsTable tbody');
                 
                 if (data.installments?.length) {
                     tbody.innerHTML = data.installments.map(i => `
@@ -1470,6 +1500,12 @@
 
         // Load System Resources
         async function loadSystemResources() {
+            document.getElementById('sysMemPercent').textContent = '⏳';
+            document.getElementById('appMemValue').textContent = '⏳';
+            document.getElementById('sysCpuPercent').textContent = '⏳';
+            document.getElementById('appCpuPercent').textContent = '⏳';
+            document.getElementById('uptimeValue').textContent = '⏳';
+            
             try {
                 const res = await fetch('/api/public/system-resources');
                 const data = await res.json();
