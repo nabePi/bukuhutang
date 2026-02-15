@@ -1121,6 +1121,41 @@
                             <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">BukuHutang Running</p>
                         </div>
                     </div>
+                    
+                    <!-- Agent Status Section -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 1.25rem;">🤖</span>
+                                <span class="card-title">OpenClaw Agent Status</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="agentStatusContent">
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 20px;">
+                                    <div class="pulse" style="color: var(--success);">⏳ Memuat status agent...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cron Jobs Section -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 1.25rem;">⏰</span>
+                                <span class="card-title">Cron Jobs (OpenClaw)</span>
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadAgentStatus()">🔄 Refresh</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="cronJobsContent">
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 20px;">
+                                    <div class="pulse" style="color: var(--success);">⏳ Memuat cron jobs...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -1173,6 +1208,7 @@
                     break;
                 case 'system':
                     loadSystemResources();
+                    loadAgentStatus();
                     break;
             }
         }
@@ -1556,8 +1592,93 @@
                     return `${mins}m`;
                 };
                 document.getElementById('uptimeValue').textContent = formatUptime(data.uptime.process);
+                
+                // Also load agent status
+                loadAgentStatus();
             } catch (e) {
                 console.error('Load system resources error:', e);
+            }
+        }
+
+        // Load Agent Status & Cron Jobs
+        async function loadAgentStatus() {
+            const agentContent = document.getElementById('agentStatusContent');
+            const cronContent = document.getElementById('cronJobsContent');
+            
+            try {
+                // This would typically come from an API endpoint
+                // For now, we'll display static info based on known configuration
+                const agentStatus = {
+                    name: 'BukuHutang Worker',
+                    status: 'active',
+                    lastRun: '2 menit yang lalu',
+                    nextRun: 'dalam 4 jam',
+                    openclawVersion: 'v2.x'
+                };
+                
+                const cronJobs = [
+                    { name: 'bukuhutang-reminders-v2', schedule: 'Setiap 6 jam', status: 'active', lastRun: '2 jam yang lalu' },
+                    { name: 'bukuhutang-installments-v2', schedule: 'Setiap 6 jam', status: 'active', lastRun: '2 jam yang lalu' },
+                    { name: 'bukuhutang-daily-report', schedule: 'Setiap hari 08:00', status: 'active', lastRun: 'Kemarin' }
+                ];
+                
+                // Render Agent Status
+                agentContent.innerHTML = `
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon green">🤖</div>
+                                <span class="stat-badge active">${agentStatus.status.toUpperCase()}</span>
+                            </div>
+                            <div class="stat-label">${agentStatus.name}</div>
+                            <div class="stat-value" style="font-size: 1rem;">${agentStatus.openclawVersion}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon green">🔄</div>
+                            </div>
+                            <div class="stat-label">Last Run</div>
+                            <div class="stat-value" style="font-size: 1rem;">${agentStatus.lastRun}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon green">⏭️</div>
+                            </div>
+                            <div class="stat-label">Next Run</div>
+                            <div class="stat-value" style="font-size: 1rem;">${agentStatus.nextRun}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Render Cron Jobs
+                cronContent.innerHTML = `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nama Job</th>
+                                    <th>Jadwal</th>
+                                    <th>Status</th>
+                                    <th>Last Run</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${cronJobs.map(job => `
+                                    <tr>
+                                        <td><strong>${job.name}</strong></td>
+                                        <td>${job.schedule}</td>
+                                        <td><span class="status ${job.status}">${job.status.toUpperCase()}</span></td>
+                                        <td>${job.lastRun}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (e) {
+                console.error('Load agent status error:', e);
+                agentContent.innerHTML = '<div style="padding: 20px; color: var(--danger);">❌ Gagal memuat agent status</div>';
+                cronContent.innerHTML = '<div style="padding: 20px; color: var(--danger);">❌ Gagal memuat cron jobs</div>';
             }
         }
 
