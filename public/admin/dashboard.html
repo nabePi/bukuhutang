@@ -1633,7 +1633,7 @@
                         schedule: 'Setiap 6 jam', 
                         status: 'active', 
                         lastRun: '2 jam yang lalu',
-                        description: 'Memperbarui status cicilan yang sudah lewat jatuh tempo dari "pending" menjadi "overdue". Berjalan bersamaan dengan reminder.'
+                        description: 'Memperbarui status cicilan yang sudah lewat jatuh tempo dari pending menjadi overdue. Berjalan bersamaan dengan reminder.'
                     },
                     { 
                         name: 'bukuhutang-daily-report', 
@@ -1712,7 +1712,7 @@
                                     <tr>
                                         <td>
                                             <strong>${job.name}</strong>
-                                            <button class="info-btn" onclick="showModal('${job.description.replace(/'/g, "\\'")}', '${job.name}', 'info')" title="Info">ℹ️</button>
+                                            <button class="info-btn" onclick="showModal('${job.description.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${job.name}', 'info')" title="Info">ℹ️</button>
                                         </td>
                                         <td>${job.schedule}</td>
                                         <td><span class="status ${job.status}">${job.status.toUpperCase()}</span></td>
