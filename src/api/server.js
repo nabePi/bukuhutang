@@ -225,6 +225,66 @@ app.get('/api/public/agent-status', async (req, res) => {
   }
 });
 
+// Public system resources endpoint (for dashboard)
+app.get('/api/public/system-resources', async (req, res) => {
+  try {
+    const os = require('os');
+    
+    // Get memory usage
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+    const memoryUsagePercent = Math.round((usedMemory / totalMemory) * 100);
+    
+    // Get CPU info
+    const cpus = os.cpus();
+    const cpuCount = cpus.length;
+    const cpuModel = cpus[0]?.model || 'Unknown';
+    
+    // Calculate CPU usage (simple calculation)
+    const loadAvg = os.loadavg();
+    const cpuUsagePercent = Math.round((loadAvg[0] / cpuCount) * 100);
+    
+    // Get process-specific memory usage
+    const processMemory = process.memoryUsage();
+    
+    // Get uptime
+    const systemUptime = os.uptime();
+    const processUptime = process.uptime();
+    
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      memory: {
+        total: Math.round(totalMemory / 1024 / 1024), // MB
+        free: Math.round(freeMemory / 1024 / 1024), // MB
+        used: Math.round(usedMemory / 1024 / 1024), // MB
+        usagePercent: memoryUsagePercent,
+        process: {
+          rss: Math.round(processMemory.rss / 1024 / 1024), // MB
+          heapTotal: Math.round(processMemory.heapTotal / 1024 / 1024), // MB
+          heapUsed: Math.round(processMemory.heapUsed / 1024 / 1024), // MB
+          external: Math.round(processMemory.external / 1024 / 1024) // MB
+        }
+      },
+      cpu: {
+        count: cpuCount,
+        model: cpuModel,
+        usagePercent: Math.min(cpuUsagePercent, 100),
+        loadAverage: loadAvg
+      },
+      uptime: {
+        system: Math.round(systemUptime),
+        process: Math.round(processUptime)
+      },
+      platform: os.platform(),
+      hostname: os.hostname()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================
 // OPENCLAW WEBHOOK ENDPOINTS
 // ============================================

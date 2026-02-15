@@ -2,6 +2,7 @@ const crypto = require('crypto');
 
 // API Key authentication
 const API_KEYS = new Set([
+  process.env.API_KEY,
   process.env.OPENCLAW_API_KEY || 'default-dev-key',
   process.env.SUPER_ADMIN_API_KEY
 ].filter(Boolean));

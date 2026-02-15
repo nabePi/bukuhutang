@@ -426,6 +426,7 @@
             <div class="tab" onclick="switchTab('installments')">📅 Cicilan</div>
             <div class="tab" onclick="switchTab('policy')">⚙️ Policy Config</div>
             <div class="tab" onclick="switchTab('agent')">🤖 Agent Status</div>
+            <div class="tab" onclick="switchTab('system')">💻 System Resources</div>
         </div>
         
         <!-- Tab: Borrowers -->
@@ -528,6 +529,15 @@
             </div>
         </div>
         
+        <!-- Tab: System Resources -->
+        <div id="tab-system" class="section tab-content">
+            <h2>💻 System Resources</h2>
+            <button class="btn btn-success" onclick="loadSystemResources()" style="margin-bottom: 15px;">🔄 Refresh Resources</button>
+            <div id="systemResourcesContent">
+                <p class="loading">Memuat data sistem...</p>
+            </div>
+        </div>
+        
         <!-- OpenClaw Jobs -->
         <div class="section">
             <h2>🔔 OpenClaw Reminder Jobs</h2>
@@ -561,6 +571,7 @@
             if (tabName === 'installments') loadInstallments();
             if (tabName === 'policy') loadPolicy();
             if (tabName === 'agent') loadAgentStatus();
+            if (tabName === 'system') loadSystemResources();
         }
         
         // WhatsApp Functions
@@ -1056,6 +1067,87 @@
                 });
             }
         });
+        
+        // Load System Resources
+        async function loadSystemResources() {
+            try {
+                const res = await fetch('/api/public/system-resources');
+                const data = await res.json();
+                
+                const mem = data.memory;
+                const cpu = data.cpu;
+                const uptime = data.uptime;
+                
+                // Determine status colors
+                const memColor = mem.usagePercent > 80 ? '#ef4444' : mem.usagePercent > 60 ? '#f59e0b' : '#10b981';
+                const cpuColor = cpu.usagePercent > 80 ? '#ef4444' : cpu.usagePercent > 60 ? '#f59e0b' : '#10b981';
+                
+                // Format uptime
+                const formatUptime = (seconds) => {
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const mins = Math.floor((seconds % 3600) / 60);
+                    if (days > 0) return `${days}d ${hours}h ${mins}m`;
+                    if (hours > 0) return `${hours}h ${mins}m`;
+                    return `${mins}m`;
+                };
+                
+                let html = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">🧠</div>
+                            <h3>Memory Usage</h3>
+                            <div class="value" style="font-size: 1.4em; color: ${memColor};">${mem.usagePercent}%</div>
+                            <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">${mem.used} MB / ${mem.total} MB</p>
+                        </div>
+                        
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">⚡</div>
+                            <h3>CPU Usage</h3>
+                            <div class="value" style="font-size: 1.4em; color: ${cpuColor};">${cpu.usagePercent}%</div>
+                            <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">${cpu.count} cores</p>
+                        </div>
+                        
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">⏱️</div>
+                            <h3>Uptime</h3>
+                            <div class="value" style="font-size: 1.2em;">${formatUptime(uptime.process)}</div>
+                            <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Process Uptime</p>
+                        </div>
+                        
+                        <div class="stat-card" style="min-height: auto; padding: 15px;">
+                            <div class="icon">📊</div>
+                            <h3>Process Memory</h3>
+                            <div class="value" style="font-size: 1.4em; color: #60a5fa;">${mem.process.rss} MB</div>
+                            <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">RSS (Resident Set Size)</p>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin: 20px 0 10px; color: #94a3b8;">📋 System Details</h3>
+                    <table style="width: 100%; margin-bottom: 20px;">
+                        <tbody>
+                            <tr><td>Platform</td><td style="text-align: right; font-weight: 600;">${data.platform}</td></tr>
+                            <tr><td>Hostname</td><td style="text-align: right; font-weight: 600;">${data.hostname}</td></tr>
+                            <tr><td>CPU Model</td><td style="text-align: right; font-weight: 600; font-size: 0.85em;">${cpu.model.substring(0, 30)}${cpu.model.length > 30 ? '...' : ''}</td></tr>
+                            <tr><td>System Uptime</td><td style="text-align: right; font-weight: 600;">${formatUptime(uptime.system)}</td></tr>
+                            <tr><td>Free Memory</td><td style="text-align: right; font-weight: 600; color: #6ee7b7;">${mem.free} MB</td></tr>
+                            <tr><td>Heap Used</td><td style="text-align: right; font-weight: 600;">${mem.process.heapUsed} MB</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <p style="margin: 0; color: #94a3b8; font-size: 0.9em;">
+                            <strong>⏰ Last Updated:</strong> ${new Date(data.timestamp).toLocaleString('id-ID')}
+                        </p>
+                    </div>
+                `;
+                
+                document.getElementById('systemResourcesContent').innerHTML = html;
+            } catch (e) {
+                console.error('Load system resources error:', e);
+                document.getElementById('systemResourcesContent').innerHTML = '<p class="empty">Gagal memuat data sistem</p>';
+            }
+        }
         
         // Init
         window.onload = function() {
