@@ -1299,7 +1299,11 @@
                 const secs = remaining % 60;
                 timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 
-                if (remaining <= 0) stopQR();
+                if (remaining <= 0) {
+                    stopQR();
+                    document.getElementById('qrSection').style.display = 'none';
+                    showModal('Waktu scan habis! QR Code expired. Silakan generate ulang.', 'QR Expired', 'warning');
+                }
             }, 1000);
         }
 
