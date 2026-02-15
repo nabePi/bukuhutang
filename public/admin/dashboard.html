@@ -1145,6 +1145,10 @@
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <span style="font-size: 1.25rem;">⏰</span>
                                 <span class="card-title">Cron Jobs (OpenClaw)</span>
+                                <button class="btn btn-secondary" 
+                                    onclick="showModal('Cron Jobs adalah tugas yang dijalankan secara otomatis pada jadwal tertentu. BukuHutang menggunakan OpenClaw untuk menjalankan 3 cron job: reminder cicilan, update status overdue, dan laporan harian.', 'Apa itu Cron Jobs?', 'info')"
+                                    style="padding: 4px 8px; font-size: 0.8rem;"
+                                >ℹ️ Info</button>
                             </div>
                             <button class="btn btn-secondary" onclick="loadAgentStatus()">🔄 Refresh</button>
                         </div>
@@ -1617,13 +1621,37 @@
                 };
                 
                 const cronJobs = [
-                    { name: 'bukuhutang-reminders-v2', schedule: 'Setiap 6 jam', status: 'active', lastRun: '2 jam yang lalu' },
-                    { name: 'bukuhutang-installments-v2', schedule: 'Setiap 6 jam', status: 'active', lastRun: '2 jam yang lalu' },
-                    { name: 'bukuhutang-daily-report', schedule: 'Setiap hari 08:00', status: 'active', lastRun: 'Kemarin' }
+                    { 
+                        name: 'bukuhutang-reminders-v2', 
+                        schedule: 'Setiap 6 jam', 
+                        status: 'active', 
+                        lastRun: '2 jam yang lalu',
+                        description: 'Mengirim reminder WhatsApp ke borrower yang memiliki cicilan jatuh tempo dalam 3 hari. Memeriksa database setiap 6 jam.'
+                    },
+                    { 
+                        name: 'bukuhutang-installments-v2', 
+                        schedule: 'Setiap 6 jam', 
+                        status: 'active', 
+                        lastRun: '2 jam yang lalu',
+                        description: 'Memperbarui status cicilan yang sudah lewat jatuh tempo dari "pending" menjadi "overdue". Berjalan bersamaan dengan reminder.'
+                    },
+                    { 
+                        name: 'bukuhutang-daily-report', 
+                        schedule: 'Setiap hari 08:00', 
+                        status: 'active', 
+                        lastRun: 'Kemarin',
+                        description: 'Mengirim laporan harian ke admin via WhatsApp berisi ringkasan: total piutang, cicilan overdue, dan statistik harian.'
+                    }
                 ];
                 
                 // Render Agent Status
                 agentContent.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                        <button class="info-btn" onclick="showModal('OpenClaw Agent adalah worker AI yang berjalan di background untuk mengotomasi pengiriman reminder WhatsApp, update status cicilan, dan laporan harian. Agent ini dijalankan oleh OpenClaw Cron setiap beberapa jam.', 'Apa itu OpenClaw Agent?', 'info')" title="Info"
+                            style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem; padding: 8px; border-radius: 8px; transition: all 0.2s ease;"
+                            onmouseover="this.style.color='var(--success)'" onmouseout="this.style.color='var(--text-secondary)'"
+                        >ℹ️ Apa ini?</button>
+                    </div>
                     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                         <div class="stat-card">
                             <div class="stat-header">
@@ -1652,6 +1680,23 @@
                 
                 // Render Cron Jobs
                 cronContent.innerHTML = `
+                    <style>
+                        .info-btn {
+                            background: transparent;
+                            border: none;
+                            color: var(--text-secondary);
+                            cursor: pointer;
+                            font-size: 1rem;
+                            padding: 4px;
+                            margin-left: 8px;
+                            border-radius: 4px;
+                            transition: all 0.2s ease;
+                        }
+                        .info-btn:hover {
+                            color: var(--success);
+                            background: rgba(34, 197, 94, 0.1);
+                        }
+                    </style>
                     <div class="table-container">
                         <table>
                             <thead>
@@ -1665,7 +1710,10 @@
                             <tbody>
                                 ${cronJobs.map(job => `
                                     <tr>
-                                        <td><strong>${job.name}</strong></td>
+                                        <td>
+                                            <strong>${job.name}</strong>
+                                            <button class="info-btn" onclick="showModal('${job.description.replace(/'/g, "\\'")}', '${job.name}', 'info')" title="Info">ℹ️</button>
+                                        </td>
                                         <td>${job.schedule}</td>
                                         <td><span class="status ${job.status}">${job.status.toUpperCase()}</span></td>
                                         <td>${job.lastRun}</td>
