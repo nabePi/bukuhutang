@@ -989,11 +989,133 @@
             </div>
 
             <!-- Other Pages -->
-            <div id="page-borrowers" class="page"></div>
-            <div id="page-lenders" class="page"></div>
-            <div id="page-agreements" class="page"></div>
-            <div id="page-installments" class="page"></div>
-            <div id="page-system" class="page"></div>
+            <div id="page-borrowers" class="page">
+                <header class="header">
+                    <div class="header-title">
+                        <h2>Daftar Borrowers</h2>
+                        <p>Peminjam yang terdaftar</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadBorrowers()">🔄 Refresh</button>
+                </header>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="borrowersTable">
+                                <thead>
+                                    <tr><th>Nama</th><th>Nomor WA</th><th>Total Pinjaman</th><th>Action</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-lenders" class="page">
+                <header class="header">
+                    <div class="header-title">
+                        <h2>Daftar Lenders</h2>
+                        <p>Pemberi pinjaman</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadLenders()">🔄 Refresh</button>
+                </header>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="lendersTable">
+                                <thead>
+                                    <tr><th>Nama</th><th>Nomor WA</th><th>Jumlah Perjanjian</th><th>Total Nilai</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-agreements" class="page">
+                <header class="header">
+                    <div class="header-title">
+                        <h2>Daftar Perjanjian</h2>
+                        <p>Semua perjanjian pinjaman</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadAgreements()">🔄 Refresh</button>
+                </header>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="agreementsTable">
+                                <thead>
+                                    <tr><th>ID</th><th>Borrower</th><th>Total</th><th>Cicilan</th><th>Status</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-installments" class="page">
+                <header class="header">
+                    <div class="header-title">
+                        <h2>Daftar Cicilan</h2>
+                        <p>Jadwal pembayaran cicilan</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadInstallments()">🔄 Refresh</button>
+                </header>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="installmentsTable">
+                                <thead>
+                                    <tr><th>ID</th><th>Borrower</th><th>Cicilan Ke</th><th>Jumlah</th><th>Jatuh Tempo</th><th>Status</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-system" class="page">
+                <header class="header">
+                    <div class="header-title">
+                        <h2>System Resources</h2>
+                        <p>Penggunaan resource server</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadSystemResources()">🔄 Refresh</button>
+                </header>
+                <div id="systemContent">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header"><div class="stat-icon green">🖥️</div></div>
+                            <div class="stat-label">System Memory</div>
+                            <div class="stat-value" id="sysMemPercent">-</div>
+                            <div class="progress-bar"><div class="progress-fill" id="sysMemBar" style="width: 0%"></div></div>
+                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;" id="sysMemText">-</p>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header"><div class="stat-icon green">📱</div></div>
+                            <div class="stat-label">BukuHutang Memory</div>
+                            <div class="stat-value" id="appMemValue">-</div>
+                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">RSS Usage</p>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header"><div class="stat-icon green">⚡</div></div>
+                            <div class="stat-label">System CPU</div>
+                            <div class="stat-value" id="sysCpuPercent">-</div>
+                            <div class="progress-bar"><div class="progress-fill" id="sysCpuBar" style="width: 0%"></div></div>
+                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;" id="sysCpuText">-</p>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header"><div class="stat-icon green">⏱️</div></div>
+                            <div class="stat-label">Uptime</div>
+                            <div class="stat-value" id="uptimeValue">-</div>
+                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">BukuHutang Running</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -1209,6 +1331,174 @@
         function refreshAll() {
             checkWAStatus();
             loadStats();
+        }
+
+        // Load Borrowers
+        async function loadBorrowers() {
+            try {
+                const res = await fetch('/api/public/agreements');
+                const data = await res.json();
+                const tbody = document.querySelector('#borrowersTable tbody');
+                
+                const borrowers = {};
+                data.agreements?.forEach(a => {
+                    if (!borrowers[a.borrower_phone]) {
+                        borrowers[a.borrower_phone] = {
+                            name: a.borrower_name,
+                            phone: a.borrower_phone,
+                            total: 0
+                        };
+                    }
+                    borrowers[a.borrower_phone].total += a.total_amount;
+                });
+
+                const list = Object.values(borrowers);
+                if (list.length) {
+                    tbody.innerHTML = list.map(b => `
+                        <tr>
+                            <td><strong>${b.name}</strong></td>
+                            <td>${b.phone}</td>
+                            <td>${formatRupiah(b.total)}</td>
+                            <td><button class="btn btn-secondary" onclick="showModal('Reminder untuk ${b.name} akan dikirim')">📱 Reminder</button></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">👤</div>Tidak ada borrowers</td></tr>';
+                }
+            } catch (e) {
+                console.error('Load borrowers error:', e);
+            }
+        }
+
+        // Load Lenders
+        async function loadLenders() {
+            try {
+                const res = await fetch('/api/public/agreements');
+                const data = await res.json();
+                const tbody = document.querySelector('#lendersTable tbody');
+                
+                const lenders = {};
+                data.agreements?.forEach(a => {
+                    const key = a.actual_lender_phone || 'unknown';
+                    if (!lenders[key]) {
+                        lenders[key] = {
+                            name: a.actual_lender_name || 'Unknown',
+                            phone: a.actual_lender_phone || '-',
+                            total: 0,
+                            count: 0
+                        };
+                    }
+                    lenders[key].total += a.total_amount;
+                    lenders[key].count++;
+                });
+
+                const list = Object.values(lenders);
+                if (list.length) {
+                    tbody.innerHTML = list.map(l => `
+                        <tr>
+                            <td><strong>${l.name}</strong></td>
+                            <td>${l.phone}</td>
+                            <td>${l.count} perjanjian</td>
+                            <td>${formatRupiah(l.total)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">💼</div>Tidak ada lenders</td></tr>';
+                }
+            } catch (e) {
+                console.error('Load lenders error:', e);
+            }
+        }
+
+        // Load Agreements
+        async function loadAgreements() {
+            try {
+                const res = await fetch('/api/public/agreements');
+                const data = await res.json();
+                const tbody = document.querySelector('#agreementsTable tbody');
+                
+                if (data.agreements?.length) {
+                    tbody.innerHTML = data.agreements.map(a => `
+                        <tr>
+                            <td>#${a.id}</td>
+                            <td><strong>${a.borrower_name}</strong></td>
+                            <td>${formatRupiah(a.total_amount)}</td>
+                            <td>${a.installment_count}x ${formatRupiah(a.installment_amount)}</td>
+                            <td><span class="status ${a.status}">${a.status}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">📋</div>Tidak ada perjanjian</td></tr>';
+                }
+            } catch (e) {
+                console.error('Load agreements error:', e);
+            }
+        }
+
+        // Load Installments
+        async function loadInstallments() {
+            try {
+                const res = await fetch('/api/public/installments');
+                const data = await res.json();
+                const tbody = document.querySelector('#installmentsTable tbody');
+                
+                if (data.installments?.length) {
+                    tbody.innerHTML = data.installments.map(i => `
+                        <tr>
+                            <td>#${i.id}</td>
+                            <td><strong>${i.borrower_name}</strong></td>
+                            <td>Cicilan #${i.installment_number}</td>
+                            <td>${formatRupiah(i.amount)}</td>
+                            <td>${new Date(i.due_date).toLocaleDateString('id-ID')}</td>
+                            <td><span class="status ${i.status}">${i.status}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">📅</div>Tidak ada cicilan</td></tr>';
+                }
+            } catch (e) {
+                console.error('Load installments error:', e);
+            }
+        }
+
+        // Load System Resources
+        async function loadSystemResources() {
+            try {
+                const res = await fetch('/api/public/system-resources');
+                const data = await res.json();
+                const mem = data.memory;
+                const cpu = data.cpu;
+
+                // Memory
+                document.getElementById('sysMemPercent').textContent = mem.usagePercent + '%';
+                document.getElementById('sysMemText').textContent = `${mem.used} MB / ${mem.total} MB`;
+                const memBar = document.getElementById('sysMemBar');
+                memBar.style.width = mem.usagePercent + '%';
+                memBar.className = 'progress-fill ' + (mem.usagePercent > 80 ? 'red' : mem.usagePercent > 60 ? 'yellow' : 'green');
+
+                // App Memory
+                document.getElementById('appMemValue').textContent = mem.process.rss + ' MB';
+
+                // CPU
+                document.getElementById('sysCpuPercent').textContent = cpu.usagePercent + '%';
+                document.getElementById('sysCpuText').textContent = `${cpu.count} cores`;
+                const cpuBar = document.getElementById('sysCpuBar');
+                cpuBar.style.width = Math.min(cpu.usagePercent, 100) + '%';
+                cpuBar.className = 'progress-fill ' + (cpu.usagePercent > 80 ? 'red' : cpu.usagePercent > 60 ? 'yellow' : 'green');
+
+                // Uptime
+                const formatUptime = (seconds) => {
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const mins = Math.floor((seconds % 3600) / 60);
+                    if (days > 0) return `${days}d ${hours}h ${mins}m`;
+                    if (hours > 0) return `${hours}h ${mins}m`;
+                    return `${mins}m`;
+                };
+                document.getElementById('uptimeValue').textContent = formatUptime(data.uptime.process);
+            } catch (e) {
+                console.error('Load system resources error:', e);
+            }
         }
 
         // Init
