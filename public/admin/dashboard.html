@@ -4,75 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BukuHutang Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-yellow: #f59e0b;
-            --accent-red: #ef4444;
+            /* UI/UX Pro Max Design System - Dark Mode OLED */
+            --bg-primary: #020617;
+            --bg-secondary: #0F172A;
+            --bg-card: #1E293B;
+            --bg-hover: #334155;
+            
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            
+            --accent-primary: #22C55E;
+            --accent-primary-glow: rgba(34, 197, 94, 0.3);
+            --accent-warning: #F59E0B;
+            --accent-error: #EF4444;
+            --accent-info: #3B82F6;
+            
             --border: rgba(148, 163, 184, 0.1);
+            --border-focus: rgba(34, 197, 94, 0.5);
+            
+            /* Typography */
+            --font-sans: 'Fira Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            --font-mono: 'Fira Code', 'Consolas', 'Monaco', monospace;
         }
-        
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: var(--font-sans);
             background: var(--bg-primary);
             color: var(--text-primary);
+            line-height: 1.6;
             min-height: 100vh;
         }
-        
+
         /* Layout */
-        .app-container {
+        .app {
             display: flex;
             min-height: 100vh;
         }
-        
+
         /* Sidebar */
         .sidebar {
-            width: 260px;
+            width: 280px;
             background: var(--bg-secondary);
             border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
             position: fixed;
             height: 100vh;
             overflow-y: auto;
             z-index: 100;
+            display: flex;
+            flex-direction: column;
         }
-        
+
         .sidebar-header {
-            padding: 24px;
+            padding: 32px 24px;
             border-bottom: 1px solid var(--border);
         }
-        
-        .sidebar-header h1 {
-            font-size: 1.5em;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+
+        .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            text-decoration: none;
         }
-        
-        .sidebar-header p {
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent-primary), #16A34A);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 20px var(--accent-primary-glow);
+        }
+
+        .brand-text h1 {
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
             color: var(--text-secondary);
-            font-size: 0.85em;
-            margin-top: 4px;
+            font-family: var(--font-mono);
         }
-        
-        .nav-menu {
+
+        .nav {
             padding: 16px 12px;
             flex: 1;
         }
-        
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+        }
+
         .nav-item {
             display: flex;
             align-items: center;
@@ -80,82 +131,184 @@
             padding: 12px 16px;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 200ms ease;
             color: var(--text-secondary);
             margin-bottom: 4px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            font-size: 0.9375rem;
+            font-family: inherit;
         }
-        
+
         .nav-item:hover {
-            background: rgba(59, 130, 246, 0.1);
+            background: var(--bg-hover);
             color: var(--text-primary);
         }
-        
+
         .nav-item.active {
-            background: var(--accent-blue);
-            color: white;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-primary);
+            box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.3);
         }
-        
-        .nav-icon {
-            font-size: 1.2em;
-            width: 24px;
-            text-align: center;
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
         }
-        
+
         /* Main Content */
-        .main-content {
+        .main {
             flex: 1;
-            margin-left: 260px;
-            padding: 24px;
+            margin-left: 280px;
+            padding: 32px;
+            min-height: 100vh;
         }
-        
-        /* Header */
-        .page-header {
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+        }
+
+        .header-title h2 {
+            font-family: var(--font-mono);
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            box-shadow: 0 0 20px var(--accent-primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 30px var(--accent-primary-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-focus);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 200ms ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border);
         }
-        
-        .page-title {
-            font-size: 1.75em;
-            font-weight: 700;
+
+        .card-title {
+            font-family: var(--font-mono);
+            font-size: 1.125rem;
+            font-weight: 600;
         }
-        
-        .page-subtitle {
-            color: var(--text-secondary);
-            margin-top: 4px;
+
+        .card-body {
+            padding: 24px;
         }
-        
+
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
         }
-        
+
+        @media (max-width: 1280px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
         .stat-card {
             background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 16px;
+            padding: 24px;
             border: 1px solid var(--border);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 200ms ease;
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0;
+            transition: opacity 200ms ease;
+        }
+
         .stat-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border-color: var(--border-focus);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
         }
-        
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
         .stat-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 16px;
         }
-        
+
         .stat-icon {
             width: 48px;
             height: 48px;
@@ -163,442 +316,460 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
-        }
-        
-        .stat-icon.blue { background: rgba(59, 130, 246, 0.2); }
-        .stat-icon.green { background: rgba(16, 185, 129, 0.2); }
-        .stat-icon.yellow { background: rgba(245, 158, 11, 0.2); }
-        .stat-icon.red { background: rgba(239, 68, 68, 0.2); }
-        
-        .stat-badge {
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.75em;
-            font-weight: 600;
-        }
-        
-        .stat-badge.active {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--accent-green);
-        }
-        
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.875em;
-            margin-bottom: 8px;
-        }
-        
-        .stat-value {
-            font-size: 1.75em;
-            font-weight: 700;
-        }
-        
-        /* Cards */
-        .card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-        
-        .card-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .card-title {
-            font-size: 1.125em;
-            font-weight: 600;
-        }
-        
-        .card-body {
-            padding: 24px;
-        }
-        
-        /* Buttons */
-        .btn {
-            padding: 10px 16px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.875em;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-primary {
-            background: var(--accent-blue);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-        
-        .btn-secondary {
+            font-size: 1.5rem;
             background: var(--bg-card);
-            color: var(--text-primary);
         }
-        
-        .btn-secondary:hover {
-            background: #475569;
+
+        .stat-icon.green {
+            background: rgba(34, 197, 94, 0.15);
+            box-shadow: 0 0 20px var(--accent-primary-glow);
         }
-        
-        .btn-success {
-            background: var(--accent-green);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: var(--accent-red);
-            color: white;
-        }
-        
-        /* Tables */
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 14px 16px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        th {
-            color: var(--text-secondary);
+
+        .stat-badge {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
             font-weight: 600;
-            font-size: 0.75em;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        tr:hover {
-            background: rgba(59, 130, 246, 0.05);
-        }
-        
-        /* Status Badges */
-        .status {
             padding: 4px 10px;
             border-radius: 20px;
-            font-size: 0.75em;
-            font-weight: 600;
         }
-        
-        .status.active {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--accent-green);
+
+        .stat-badge.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-primary);
         }
-        
-        .status.pending {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--accent-yellow);
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 8px;
         }
-        
-        .status.overdue {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--accent-red);
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
         }
-        
-        .status.paid {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent-blue);
-        }
-        
-        /* WhatsApp Section */
+
+        /* WhatsApp Status */
         .wa-status {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 24px;
             flex-wrap: wrap;
         }
-        
+
         .wa-info {
             flex: 1;
             min-width: 200px;
         }
-        
-        .wa-status-text {
+
+        .wa-status-main {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 1.125em;
+            gap: 12px;
+            font-size: 1.125rem;
             font-weight: 600;
             margin-bottom: 8px;
         }
-        
-        .wa-phone {
-            color: var(--text-secondary);
+
+        .wa-status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
         }
-        
+
+        .wa-status-dot.connected {
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary);
+        }
+
+        .wa-status-dot.disconnected {
+            background: var(--accent-error);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .wa-phone {
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
         .wa-actions {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 12px;
         }
-        
-        .qr-container {
+
+        /* QR Section */
+        .qr-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
             text-align: center;
-            padding: 20px;
         }
-        
+
         .qr-image {
             max-width: 200px;
-            border-radius: 8px;
-            margin-bottom: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
-        
+
         .qr-timer {
-            font-size: 1.25em;
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
             font-weight: 700;
-            color: var(--accent-red);
+            color: var(--accent-error);
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
             margin-bottom: 8px;
         }
-        
+
+        .qr-hint {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        tr:hover td {
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* Status Badges */
+        .status {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .status.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .status.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+        }
+
+        .status.paid {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-info);
+        }
+
+        .status.overdue {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-error);
+        }
+
+        /* Progress Bars */
+        .progress-container {
+            margin-top: 12px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-card);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 300ms ease;
+        }
+
+        .progress-fill.green {
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary-glow);
+        }
+
+        .progress-fill.yellow {
+            background: var(--accent-warning);
+        }
+
+        .progress-fill.red {
+            background: var(--accent-error);
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
         /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            inset: 0;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(4px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 24px;
         }
-        
+
         .modal-overlay.active {
             display: flex;
         }
-        
+
         .modal-content {
             background: var(--bg-secondary);
             border-radius: 16px;
             max-width: 400px;
             width: 100%;
             padding: 24px;
+            border: 1px solid var(--border);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
         }
-        
+
         .modal-title {
-            font-size: 1.25em;
+            font-family: var(--font-mono);
+            font-size: 1.125rem;
             font-weight: 600;
             margin-bottom: 12px;
         }
-        
+
         .modal-message {
             color: var(--text-secondary);
             margin-bottom: 20px;
             line-height: 1.5;
         }
-        
-        .modal-buttons {
+
+        .modal-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: flex-end;
         }
-        
-        /* Progress Bar */
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: var(--bg-card);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s;
-        }
-        
-        .progress-fill.green { background: var(--accent-green); }
-        .progress-fill.yellow { background: var(--accent-yellow); }
-        .progress-fill.red { background: var(--accent-red); }
-        
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: fixed;
-                bottom: 0;
-                height: auto;
-                border-right: none;
-                border-top: 1px solid var(--border);
-                z-index: 100;
-            }
-            
-            .sidebar-header {
-                display: none;
-            }
-            
-            .nav-menu {
-                display: flex;
-                justify-content: space-around;
-                padding: 8px;
-            }
-            
-            .nav-item {
-                flex-direction: column;
-                padding: 8px 12px;
-                font-size: 0.75em;
-            }
-            
-            .nav-item span:last-child {
-                display: none;
-            }
-            
-            .main-content {
-                margin-left: 0;
-                margin-bottom: 80px;
-                padding: 16px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
+
         /* Empty State */
         .empty-state {
             text-align: center;
             padding: 48px 24px;
             color: var(--text-secondary);
         }
-        
+
         .empty-state-icon {
-            font-size: 3em;
+            font-size: 3rem;
             margin-bottom: 16px;
-            opacity: 0.5;
+            opacity: 0.3;
         }
-        
-        /* Loading */
-        .loading {
-            color: var(--text-secondary);
-            font-style: italic;
+
+        /* Page Content */
+        .page {
+            display: none;
         }
-        
-        .skeleton {
-            background: linear-gradient(90deg, var(--bg-card) 25%, #475569 50%, var(--bg-card) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            border-radius: 4px;
-            height: 20px;
-            margin-bottom: 8px;
+
+        .page.active {
+            display: block;
         }
-        
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: fixed;
+                bottom: 0;
+                top: auto;
+                border-right: none;
+                border-top: 1px solid var(--border);
+                z-index: 100;
+            }
+
+            .sidebar-header {
+                display: none;
+            }
+
+            .nav {
+                display: flex;
+                padding: 8px;
+                gap: 4px;
+                overflow-x: auto;
+            }
+
+            .nav-section {
+                display: contents;
+            }
+
+            .nav-label {
+                display: none;
+            }
+
+            .nav-item {
+                flex-direction: column;
+                padding: 8px 16px;
+                font-size: 0.6875rem;
+                min-width: 64px;
+                gap: 4px;
+            }
+
+            .nav-item svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .main {
+                margin-left: 0;
+                margin-bottom: 80px;
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Modal -->
-    <div id="customModal" class="modal-overlay">
+    <div id="modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-title" id="modalTitle">📢 Pemberitahuan</div>
             <div class="modal-message" id="modalMessage">Message</div>
-            <div class="modal-buttons" id="modalButtons">
+            <div class="modal-actions" id="modalActions">
                 <button class="btn btn-primary" onclick="closeModal()">OK</button>
             </div>
         </div>
     </div>
 
-    <div class="app-container">
+    <div class="app">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h1>📊 BukuHutang</h1>
-                <p>Panel Admin</p>
+                <a href="#" class="brand">
+                    <div class="brand-icon">💰</div>
+                    <div class="brand-text">
+                        <h1>BukuHutang</h1>
+                        <p>Admin Dashboard</p>
+                    </div>
+                </a>
             </div>
-            <nav class="nav-menu">
-                <div class="nav-item active" onclick="showPage('overview')">
-                    <span class="nav-icon">🏠</span>
-                    <span>Overview</span>
-                </div>
-                <div class="nav-item" onclick="showPage('borrowers')">
-                    <span class="nav-icon">👥</span>
-                    <span>Borrowers</span>
-                </div>
-                <div class="nav-item" onclick="showPage('lenders')">
-                    <span class="nav-icon">💼</span>
-                    <span>Lenders</span>
-                </div>
-                <div class="nav-item" onclick="showPage('agreements')">
-                    <span class="nav-icon">📋</span>
-                    <span>Perjanjian</span>
-                </div>
-                <div class="nav-item" onclick="showPage('installments')">
-                    <span class="nav-icon">📅</span>
-                    <span>Cicilan</span>
-                </div>
-                <div class="nav-item" onclick="showPage('system')">
-                    <span class="nav-icon">💻</span>
-                    <span>System</span>
+            <nav class="nav">
+                <div class="nav-section">
+                    <div class="nav-label">Menu</div>
+                    <button class="nav-item active" onclick="showPage('overview')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        <span>Overview</span>
+                    </button>
+                    <button class="nav-item" onclick="showPage('borrowers')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <span>Borrowers</span>
+                    </button>
+                    <button class="nav-item" onclick="showPage('lenders')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <span>Lenders</span>
+                    </button>
+                    <button class="nav-item" onclick="showPage('agreements')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span>Perjanjian</span>
+                    </button>
+                    <button class="nav-item" onclick="showPage('installments')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span>Cicilan</span>
+                    </button>
+                    <button class="nav-item" onclick="showPage('system')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+                        <span>System</span>
+                    </button>
                 </div>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main">
             <!-- Overview Page -->
-            <div id="page-overview" class="page">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Dashboard Overview</h2>
-                        <p class="page-subtitle">Ringkasan aktivitas BukuHutang</p>
+            <div id="page-overview" class="page active">
+                <header class="header">
+                    <div class="header-title">
+                        <h2>Dashboard Overview</h2>
+                        <p>Ringkasan aktivitas BukuHutang</p>
                     </div>
-                    <button class="btn btn-primary" onclick="refreshAll()">🔄 Refresh</button>
-                </div>
+                    <button class="btn btn-secondary" onclick="refreshAll()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Refresh
+                    </button>
+                </header>
 
-                <!-- WhatsApp Status Card -->
-                <div class="card">
+                <!-- WhatsApp Card -->
+                <div class="card" style="margin-bottom: 32px;">
                     <div class="card-header">
-                        <span class="card-title">📱 Status WhatsApp</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 1.5rem;">📱</span>
+                            <span class="card-title">WhatsApp Connection</span>
+                        </div>
                         <span id="waBadge" class="stat-badge">Checking...</span>
                     </div>
                     <div class="card-body">
                         <div class="wa-status">
                             <div class="wa-info">
-                                <div id="waStatusText" class="wa-status-text">
-                                    <span>⏳</span> Mengecek status...
+                                <div class="wa-status-main" id="waStatusText">
+                                    <span class="wa-status-dot disconnected" id="waDot"></span>
+                                    <span>Mengecek status...</span>
                                 </div>
-                                <div id="waPhone" class="wa-phone" style="display: none;"></div>
+                                <div class="wa-phone" id="waPhone" style="display: none;"></div>
                             </div>
                             <div class="wa-actions">
-                                <button id="btnGenerateQR" class="btn btn-success" onclick="generateQR()" style="display: none;">
-                                    📱 Generate QR
+                                <button id="btnGenerateQR" class="btn btn-primary" onclick="generateQR()" style="display: none;">
+                                    Generate QR Code
                                 </button>
-                                <button id="btnLogout" class="btn btn-danger" onclick="logoutWA()" style="display: none;">
-                                    🔴 Logout
+                                <button id="btnLogout" class="btn btn-secondary" onclick="logoutWA()" style="display: none;">
+                                    Logout
                                 </button>
                             </div>
                         </div>
-                        <div id="qrSection" style="display: none; margin-top: 20px;">
-                            <div class="qr-container">
-                                <img id="qrImage" class="qr-image" src="" alt="QR Code">
-                                <div id="qrTimer" class="qr-timer">02:00</div>
-                                <p style="color: var(--text-secondary);">Scan dengan WhatsApp di HP Anda</p>
-                            </div>
+                        <div id="qrSection" class="qr-section" style="display: none;">
+                            <img id="qrImage" class="qr-image" src="" alt="QR Code">
+                            <div class="qr-timer" id="qrTimer">02:00</div>
+                            <p class="qr-hint">Scan dengan WhatsApp di HP Anda</p>
                         </div>
                     </div>
                 </div>
@@ -607,12 +778,13 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-icon blue">💰</div>
-                            <span class="stat-badge active">Active</span>
+                            <div class="stat-icon green">💰</div>
+                            <span class="stat-badge active">Live</span>
                         </div>
                         <div class="stat-label">Total Piutang Aktif</div>
                         <div class="stat-value" id="statPiutang">Rp 0</div>
                     </div>
+
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon green">👥</div>
@@ -621,17 +793,19 @@
                         <div class="stat-label">Total Borrowers</div>
                         <div class="stat-value" id="statBorrowers">0</div>
                     </div>
+
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-icon yellow">📋</div>
+                            <div class="stat-icon green">📋</div>
                             <span class="stat-badge active">Active</span>
                         </div>
                         <div class="stat-label">Perjanjian Aktif</div>
                         <div class="stat-value" id="statAgreements">0</div>
                     </div>
+
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-icon red">📅</div>
+                            <div class="stat-icon green">📅</div>
                             <span class="stat-badge pending">Pending</span>
                         </div>
                         <div class="stat-label">Cicilan Pending</div>
@@ -639,11 +813,14 @@
                     </div>
                 </div>
 
-                <!-- Recent Activity -->
+                <!-- Recent Agreements -->
                 <div class="card">
                     <div class="card-header">
-                        <span class="card-title">📋 Perjanjian Terbaru</span>
-                        <button class="btn btn-secondary" onclick="showPage('agreements')">Lihat Semua</button>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 1.25rem;">📋</span>
+                            <span class="card-title">Perjanjian Terbaru</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="showPage('agreements')">Lihat Semua →</button>
                     </div>
                     <div class="card-body">
                         <div class="table-container">
@@ -657,7 +834,10 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td colspan="4" class="loading">Memuat data...</td></tr>
+                                    <tr><td colspan="4" class="empty-state">
+                                        <div class="empty-state-icon">📭</div>
+                                        <div>Memuat data...</div>
+                                    </td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -665,173 +845,12 @@
                 </div>
             </div>
 
-            <!-- Borrowers Page -->
-            <div id="page-borrowers" class="page" style="display: none;">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Daftar Borrowers</h2>
-                        <p class="page-subtitle">Peminjam yang terdaftar</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="loadBorrowers()">🔄 Refresh</button>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-container">
-                            <table id="borrowersTable">
-                                <thead>
-                                    <tr>
-                                        <th>Nama</th>
-                                        <th>Nomor WA</th>
-                                        <th>Total Pinjaman</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lenders Page -->
-            <div id="page-lenders" class="page" style="display: none;">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Daftar Lenders</h2>
-                        <p class="page-subtitle">Pemberi pinjaman</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="loadLenders()">🔄 Refresh</button>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-container">
-                            <table id="lendersTable">
-                                <thead>
-                                    <tr>
-                                        <th>Nama</th>
-                                        <th>Nomor WA</th>
-                                        <th>Jumlah Perjanjian</th>
-                                        <th>Total Nilai</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Agreements Page -->
-            <div id="page-agreements" class="page" style="display: none;">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Daftar Perjanjian</h2>
-                        <p class="page-subtitle">Semua perjanjian pinjaman</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="loadAgreements()">🔄 Refresh</button>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-container">
-                            <table id="agreementsTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Borrower</th>
-                                        <th>Total</th>
-                                        <th>Cicilan</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Installments Page -->
-            <div id="page-installments" class="page" style="display: none;">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Daftar Cicilan</h2>
-                        <p class="page-subtitle">Jadwal pembayaran cicilan</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="loadInstallments()">🔄 Refresh</button>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-container">
-                            <table id="installmentsTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Borrower</th>
-                                        <th>Cicilan Ke</th>
-                                        <th>Jumlah</th>
-                                        <th>Jatuh Tempo</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- System Page -->
-            <div id="page-system" class="page" style="display: none;">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">System Resources</h2>
-                        <p class="page-subtitle">Penggunaan resource server</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="loadSystemResources()">🔄 Refresh</button>
-                </div>
-                <div id="systemContent">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon blue">🖥️</div>
-                            </div>
-                            <div class="stat-label">System Memory</div>
-                            <div class="stat-value" id="sysMemPercent">-</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="sysMemBar" style="width: 0%"></div>
-                            </div>
-                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;" id="sysMemText">-</p>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon green">📱</div>
-                            </div>
-                            <div class="stat-label">BukuHutang Memory</div>
-                            <div class="stat-value" id="appMemValue">-</div>
-                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">RSS Usage</p>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon yellow">⚡</div>
-                            </div>
-                            <div class="stat-label">System CPU</div>
-                            <div class="stat-value" id="sysCpuPercent">-</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="sysCpuBar" style="width: 0%"></div>
-                            </div>
-                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;" id="sysCpuText">-</p>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon red">⏱️</div>
-                            </div>
-                            <div class="stat-label">Uptime</div>
-                            <div class="stat-value" id="uptimeValue">-</div>
-                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">BukuHutang Running</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Other Pages -->
+            <div id="page-borrowers" class="page"></div>
+            <div id="page-lenders" class="page"></div>
+            <div id="page-agreements" class="page"></div>
+            <div id="page-installments" class="page"></div>
+            <div id="page-system" class="page"></div>
         </main>
     </div>
 
@@ -851,119 +870,110 @@
             return `${mins}m`;
         }
 
-        // Page navigation
+        // Navigation
         function showPage(pageName) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-            // Show selected page
-            document.getElementById(`page-${pageName}`).style.display = 'block';
-            // Update nav active state
-            document.querySelectorAll('.nav-item').forEach((item, index) => {
-                const pages = ['overview', 'borrowers', 'lenders', 'agreements', 'installments', 'system'];
-                if (pages[index] === pageName) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-            // Load data
-            if (pageName === 'borrowers') loadBorrowers();
-            if (pageName === 'lenders') loadLenders();
-            if (pageName === 'agreements') loadAgreements();
-            if (pageName === 'installments') loadInstallments();
-            if (pageName === 'system') loadSystemResources();
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            
+            const navItems = document.querySelectorAll('.nav-item');
+            const pageMap = ['overview', 'borrowers', 'lenders', 'agreements', 'installments', 'system'];
+            const index = pageMap.indexOf(pageName);
+            if (index >= 0) navItems[index].classList.add('active');
         }
 
-        // Modal functions
+        // Modal
         function showModal(message, title = 'Pemberitahuan', type = 'info') {
             const icons = { info: '📢', success: '✅', error: '❌', warning: '⚠️' };
             document.getElementById('modalTitle').textContent = `${icons[type] || '📢'} ${title}`;
             document.getElementById('modalMessage').textContent = message;
-            document.getElementById('modalButtons').innerHTML = 
+            document.getElementById('modalActions').innerHTML = 
                 `<button class="btn btn-primary" onclick="closeModal()">OK</button>`;
-            document.getElementById('customModal').classList.add('active');
+            document.getElementById('modal').classList.add('active');
         }
 
         function showConfirm(message, onConfirm, title = 'Konfirmasi') {
             document.getElementById('modalTitle').textContent = `❓ ${title}`;
             document.getElementById('modalMessage').textContent = message;
             window._confirmCallback = onConfirm;
-            document.getElementById('modalButtons').innerHTML = `
+            document.getElementById('modalActions').innerHTML = `
                 <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
-                <button class="btn btn-danger" onclick="closeModal(); window._confirmCallback && window._confirmCallback();">Ya</button>
+                <button class="btn btn-primary" onclick="closeModal(); window._confirmCallback?.();">Ya</button>
             `;
-            document.getElementById('customModal').classList.add('active');
+            document.getElementById('modal').classList.add('active');
         }
 
         function closeModal() {
-            document.getElementById('customModal').classList.remove('active');
+            document.getElementById('modal').classList.remove('active');
         }
 
-        document.getElementById('customModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
         });
 
-        // WhatsApp functions
-        let qrTimer = null;
-        let countdownInterval = null;
+        // WhatsApp
+        let qrTimer, countdownInterval;
 
         async function checkWAStatus() {
             try {
                 const res = await fetch('/api/public/whatsapp/status');
                 const data = await res.json();
-                updateWAStatus(data);
+                updateWAUI(data);
             } catch (e) {
-                console.error('WA status error:', e);
+                console.error('WA check error:', e);
             }
         }
 
-        function updateWAStatus(data) {
-            const statusText = document.getElementById('waStatusText');
-            const waPhone = document.getElementById('waPhone');
-            const waBadge = document.getElementById('waBadge');
-            const btnGenerate = document.getElementById('btnGenerateQR');
+        function updateWAUI(data) {
+            const dot = document.getElementById('waDot');
+            const text = document.querySelector('#waStatusMain span:last-child') || document.querySelector('#waStatusText span:last-child');
+            const phone = document.getElementById('waPhone');
+            const badge = document.getElementById('waBadge');
+            const btnGen = document.getElementById('btnGenerateQR');
             const btnLogout = document.getElementById('btnLogout');
             const qrSection = document.getElementById('qrSection');
 
             if (data.connected) {
-                statusText.innerHTML = '<span style="color: var(--accent-green);">🟢</span> Connected';
-                waPhone.textContent = data.phoneNumber || '-';
-                waPhone.style.display = 'block';
-                waBadge.textContent = 'Connected';
-                waBadge.className = 'stat-badge active';
-                btnGenerate.style.display = 'none';
+                dot.className = 'wa-status-dot connected';
+                text.textContent = 'Connected';
+                phone.textContent = data.phoneNumber || '';
+                phone.style.display = 'block';
+                badge.textContent = 'Connected';
+                badge.className = 'stat-badge active';
+                btnGen.style.display = 'none';
                 btnLogout.style.display = 'inline-flex';
                 qrSection.style.display = 'none';
-                stopCountdown();
+                stopQR();
             } else {
-                statusText.innerHTML = '<span style="color: var(--accent-red);">🔴</span> Disconnected';
-                waPhone.style.display = 'none';
-                waBadge.textContent = 'Disconnected';
-                waBadge.className = 'stat-badge pending';
-                btnGenerate.style.display = 'inline-flex';
+                dot.className = 'wa-status-dot disconnected';
+                text.textContent = 'Disconnected';
+                phone.style.display = 'none';
+                badge.textContent = 'Disconnected';
+                badge.className = 'stat-badge pending';
+                btnGen.style.display = 'inline-flex';
                 btnLogout.style.display = 'none';
-                qrSection.style.display = 'none';
             }
         }
 
         async function generateQR() {
             const btn = document.getElementById('btnGenerateQR');
             btn.disabled = true;
-            btn.textContent = '⏳ Generating...';
+            btn.textContent = 'Generating...';
 
             try {
                 const res = await fetch('/api/public/whatsapp/status');
                 const data = await res.json();
 
                 if (data.connected) {
-                    updateWAStatus(data);
+                    updateWAUI(data);
                     return;
                 }
 
                 if (data.qrCode) {
                     document.getElementById('qrImage').src = data.qrCode;
                     document.getElementById('qrSection').style.display = 'block';
-                    startCountdown(120);
+                    startQRCountdown(120);
                     
                     qrTimer = setTimeout(() => {
                         document.getElementById('qrSection').style.display = 'none';
@@ -974,15 +984,14 @@
                 showModal('Gagal generate QR code', 'Error', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📱 Generate QR';
+                btn.textContent = 'Generate QR Code';
             }
         }
 
-        function startCountdown(seconds) {
+        function startQRCountdown(seconds) {
             let remaining = seconds;
             const timerEl = document.getElementById('qrTimer');
-            
-            stopCountdown();
+            stopQR();
             
             countdownInterval = setInterval(() => {
                 remaining--;
@@ -990,21 +999,13 @@
                 const secs = remaining % 60;
                 timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 
-                if (remaining <= 0) {
-                    stopCountdown();
-                }
+                if (remaining <= 0) stopQR();
             }, 1000);
         }
 
-        function stopCountdown() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-            if (qrTimer) {
-                clearTimeout(qrTimer);
-                qrTimer = null;
-            }
+        function stopQR() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (qrTimer) clearTimeout(qrTimer);
         }
 
         function logoutWA() {
@@ -1016,214 +1017,62 @@
                 } catch (e) {
                     showModal('Gagal logout', 'Error', 'error');
                 }
-            }, 'Konfirmasi Logout');
+            });
         }
 
-        // Data loading functions
+        // Data loading
         async function loadStats() {
             try {
-                const res = await fetch('/api/public/agreements');
-                const data = await res.json();
+                const [agreementsRes, installmentsRes] = await Promise.all([
+                    fetch('/api/public/agreements'),
+                    fetch('/api/public/installments')
+                ]);
                 
-                // Calculate stats
-                const totalPiutang = data.agreements?.reduce((sum, a) => sum + (a.total_amount || 0), 0) || 0;
+                const agreements = await agreementsRes.json();
+                const installments = await installmentsRes.json();
                 
-                document.getElementById('statPiutang').textContent = formatRupiah(totalPiutang);
-                document.getElementById('statAgreements').textContent = data.agreements?.length || 0;
+                const totalPiutang = agreements.agreements?.reduce((s, a) => s + (a.total_amount || 0), 0) || 0;
+                const borrowers = new Set(agreements.agreements?.map(a => a.borrower_phone)).size;
+                const pendingInstallments = installments.installments?.filter(i => i.status === 'pending').length || 0;
 
-                // Update recent agreements table
+                document.getElementById('statPiutang').textContent = formatRupiah(totalPiutang);
+                document.getElementById('statBorrowers').textContent = borrowers;
+                document.getElementById('statAgreements').textContent = agreements.agreements?.length || 0;
+                document.getElementById('statInstallments').textContent = pendingInstallments;
+
+                // Recent agreements table
                 const tbody = document.querySelector('#recentAgreements tbody');
-                if (data.agreements?.length) {
-                    tbody.innerHTML = data.agreements.slice(0, 5).map(a => `
+                if (agreements.agreements?.length) {
+                    tbody.innerHTML = agreements.agreements.slice(0, 5).map(a => `
                         <tr>
-                            <td>${a.borrower_name}</td>
+                            <td><strong>${a.borrower_name}</strong></td>
                             <td>${a.actual_lender_name || '-'}</td>
                             <td>${formatRupiah(a.total_amount)}</td>
                             <td><span class="status ${a.status}">${a.status}</span></td>
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">📭</div>Tidak ada perjanjian</td></tr>';
+                    tbody.innerHTML = `
+                        <tr><td colspan="4" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div>Belum ada perjanjian</div>
+                        </td></tr>`;
                 }
             } catch (e) {
                 console.error('Load stats error:', e);
             }
         }
 
-        async function loadBorrowers() {
-            try {
-                const res = await fetch('/api/public/agreements');
-                const data = await res.json();
-                const tbody = document.querySelector('#borrowersTable tbody');
-                
-                // Extract unique borrowers
-                const borrowers = {};
-                data.agreements?.forEach(a => {
-                    if (!borrowers[a.borrower_phone]) {
-                        borrowers[a.borrower_phone] = {
-                            name: a.borrower_name,
-                            phone: a.borrower_phone,
-                            total: 0
-                        };
-                    }
-                    borrowers[a.borrower_phone].total += a.total_amount;
-                });
-
-                const list = Object.values(borrowers);
-                document.getElementById('statBorrowers').textContent = list.length;
-
-                if (list.length) {
-                    tbody.innerHTML = list.map(b => `
-                        <tr>
-                            <td><strong>${b.name}</strong></td>
-                            <td>${b.phone}</td>
-                            <td>${formatRupiah(b.total)}</td>
-                            <td><button class="btn btn-secondary" onclick="showModal('Reminder akan dikirim ke ${b.name}')">📱 Reminder</button></td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">👤</div>Tidak ada borrowers</td></tr>';
-                }
-            } catch (e) {
-                console.error('Load borrowers error:', e);
-            }
-        }
-
-        async function loadLenders() {
-            try {
-                const res = await fetch('/api/public/agreements');
-                const data = await res.json();
-                const tbody = document.querySelector('#lendersTable tbody');
-                
-                const lenders = {};
-                data.agreements?.forEach(a => {
-                    const key = a.actual_lender_phone || 'unknown';
-                    if (!lenders[key]) {
-                        lenders[key] = {
-                            name: a.actual_lender_name || 'Unknown',
-                            phone: a.actual_lender_phone || '-',
-                            total: 0,
-                            count: 0
-                        };
-                    }
-                    lenders[key].total += a.total_amount;
-                    lenders[key].count++;
-                });
-
-                const list = Object.values(lenders);
-                if (list.length) {
-                    tbody.innerHTML = list.map(l => `
-                        <tr>
-                            <td><strong>${l.name}</strong></td>
-                            <td>${l.phone}</td>
-                            <td>${l.count} perjanjian</td>
-                            <td>${formatRupiah(l.total)}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">💼</div>Tidak ada lenders</td></tr>';
-                }
-            } catch (e) {
-                console.error('Load lenders error:', e);
-            }
-        }
-
-        async function loadAgreements() {
-            try {
-                const res = await fetch('/api/public/agreements');
-                const data = await res.json();
-                const tbody = document.querySelector('#agreementsTable tbody');
-                
-                if (data.agreements?.length) {
-                    tbody.innerHTML = data.agreements.map(a => `
-                        <tr>
-                            <td>#${a.id}</td>
-                            <td><strong>${a.borrower_name}</strong></td>
-                            <td>${formatRupiah(a.total_amount)}</td>
-                            <td>${a.installment_count}x ${formatRupiah(a.installment_amount)}</td>
-                            <td><span class="status ${a.status}">${a.status}</span></td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">📋</div>Tidak ada perjanjian</td></tr>';
-                }
-            } catch (e) {
-                console.error('Load agreements error:', e);
-            }
-        }
-
-        async function loadInstallments() {
-            try {
-                const res = await fetch('/api/public/installments');
-                const data = await res.json();
-                const tbody = document.querySelector('#installmentsTable tbody');
-                
-                document.getElementById('statInstallments').textContent = data.installments?.filter(i => i.status === 'pending').length || 0;
-
-                if (data.installments?.length) {
-                    tbody.innerHTML = data.installments.map(i => `
-                        <tr>
-                            <td>#${i.id}</td>
-                            <td><strong>${i.borrower_name}</strong></td>
-                            <td>Cicilan #${i.installment_number}</td>
-                            <td>${formatRupiah(i.amount)}</td>
-                            <td>${new Date(i.due_date).toLocaleDateString('id-ID')}</td>
-                            <td><span class="status ${i.status}">${i.status}</span></td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">📅</div>Tidak ada cicilan</td></tr>';
-                }
-            } catch (e) {
-                console.error('Load installments error:', e);
-            }
-        }
-
-        async function loadSystemResources() {
-            try {
-                const res = await fetch('/api/public/system-resources');
-                const data = await res.json();
-                const mem = data.memory;
-                const cpu = data.cpu;
-
-                // Memory
-                document.getElementById('sysMemPercent').textContent = mem.usagePercent + '%';
-                document.getElementById('sysMemText').textContent = `${mem.used} MB / ${mem.total} MB digunakan`;
-                const memBar = document.getElementById('sysMemBar');
-                memBar.style.width = mem.usagePercent + '%';
-                memBar.className = 'progress-fill ' + (mem.usagePercent > 80 ? 'red' : mem.usagePercent > 60 ? 'yellow' : 'green');
-
-                // App Memory
-                document.getElementById('appMemValue').textContent = mem.process.rss + ' MB';
-
-                // CPU
-                document.getElementById('sysCpuPercent').textContent = cpu.usagePercent + '%';
-                document.getElementById('sysCpuText').textContent = `${cpu.count} cores • Load: ${cpu.loadAverage[0].toFixed(2)}`;
-                const cpuBar = document.getElementById('sysCpuBar');
-                cpuBar.style.width = Math.min(cpu.usagePercent, 100) + '%';
-                cpuBar.className = 'progress-fill ' + (cpu.usagePercent > 80 ? 'red' : cpu.usagePercent > 60 ? 'yellow' : 'green');
-
-                // Uptime
-                document.getElementById('uptimeValue').textContent = formatUptime(data.uptime.process);
-            } catch (e) {
-                console.error('Load system resources error:', e);
-            }
-        }
-
         function refreshAll() {
             checkWAStatus();
             loadStats();
-            loadBorrowers();
-            loadInstallments();
         }
 
-        // Initialize
-        window.onload = function() {
+        // Init
+        window.addEventListener('DOMContentLoaded', () => {
             checkWAStatus();
             loadStats();
-            loadBorrowers();
-            loadInstallments();
-        };
+        });
     </script>
 </body>
 </html>
