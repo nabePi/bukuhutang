@@ -1108,6 +1108,13 @@
                             <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;" id="sysCpuText">-</p>
                         </div>
                         <div class="stat-card">
+                            <div class="stat-header"><div class="stat-icon green">📊</div></div>
+                            <div class="stat-label">BukuHutang CPU</div>
+                            <div class="stat-value" id="appCpuPercent">-</div>
+                            <div class="progress-bar"><div class="progress-fill" id="appCpuBar" style="width: 0%"></div></div>
+                            <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">Process Usage</p>
+                        </div>
+                        <div class="stat-card">
                             <div class="stat-header"><div class="stat-icon green">⏱️</div></div>
                             <div class="stat-label">Uptime</div>
                             <div class="stat-value" id="uptimeValue">-</div>
@@ -1485,6 +1492,13 @@
                 const cpuBar = document.getElementById('sysCpuBar');
                 cpuBar.style.width = Math.min(cpu.usagePercent, 100) + '%';
                 cpuBar.className = 'progress-fill ' + (cpu.usagePercent > 80 ? 'red' : cpu.usagePercent > 60 ? 'yellow' : 'green');
+
+                // App CPU
+                const appCpu = cpu.process?.usagePercent || 0;
+                document.getElementById('appCpuPercent').textContent = appCpu + '%';
+                const appCpuBar = document.getElementById('appCpuBar');
+                appCpuBar.style.width = Math.min(appCpu, 100) + '%';
+                appCpuBar.className = 'progress-fill ' + (appCpu > 50 ? 'red' : appCpu > 30 ? 'yellow' : 'green');
 
                 // Uptime
                 const formatUptime = (seconds) => {

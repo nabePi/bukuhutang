@@ -248,9 +248,18 @@ app.get('/api/public/system-resources', async (req, res) => {
     // Get process-specific memory usage
     const processMemory = process.memoryUsage();
     
+    // Get process CPU usage (in microseconds)
+    const processCpu = process.cpuUsage();
+    const totalProcessCpu = (processCpu.user + processCpu.system) / 1000000; // Convert to seconds
+    
     // Get uptime
     const systemUptime = os.uptime();
     const processUptime = process.uptime();
+    
+    // Calculate process CPU percentage (approximation)
+    const processCpuPercent = processUptime > 0 
+      ? Math.min(Math.round((totalProcessCpu / processUptime) * 100), 100)
+      : 0;
     
     res.json({
       status: 'ok',
@@ -271,7 +280,12 @@ app.get('/api/public/system-resources', async (req, res) => {
         count: cpuCount,
         model: cpuModel,
         usagePercent: Math.min(cpuUsagePercent, 100),
-        loadAverage: loadAvg
+        loadAverage: loadAvg,
+        process: {
+          usagePercent: processCpuPercent,
+          user: Math.round(processCpu.user / 1000000), // seconds
+          system: Math.round(processCpu.system / 1000000) // seconds
+        }
       },
       uptime: {
         system: Math.round(systemUptime),
